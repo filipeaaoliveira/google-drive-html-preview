@@ -35,8 +35,11 @@ These are accepted, not bugs waiting to be filed.
 
 - **Multi-file sites are out of scope.** HTML that references sibling Drive
   files for CSS, JavaScript, or images will not resolve them.
-- **Only UTF-8 renders correctly.** The downloaded bytes are always decoded as
-  UTF-8, so a Latin-1 or Shift-JIS document renders as mojibake.
+- **Mislabelled encodings render as mojibake.** The downloaded bytes are
+  decoded using the `charset` in Drive's `Content-Type` response header, and as
+  UTF-8 when that header names none. A correctly labelled Latin-1 or Shift-JIS
+  file therefore renders fine; one served without a charset, or with the wrong
+  one, does not.
 - **Some Drive interstitials are not detected.** A page served from a Drive
   host with HTTP 200 and no `Content-Disposition` header — the virus-scan
   confirmation shown for files over 100 MB, for instance — is indistinguishable
@@ -57,12 +60,21 @@ To run from source: clone the repository, open `chrome://extensions`, enable
 Developer mode, choose "Load unpacked", and select the repository root. There
 is no build step.
 
+Loading the repository root unpacked exposes the *whole* folder to the browser
+— tests, docs, tooling, and the `spike/` directory with its second
+`manifest.json`. That is fine for development and wrong for distribution. What
+gets submitted to the Chrome Web Store is the zip produced by
+`npm run package`, which contains only `manifest.json`, `icons/`, and `src/`.
+
 ## Development
 
     npm test                   # unit tests, no dependencies
+    npm run package            # build dist/drive-html-preview-<version>.zip
     node tools/make-icons.js   # regenerate icons
 
-Both run on Node's built-ins alone; the project has no dependencies.
+The project has no dependencies. `npm test` and the icon generator run on
+Node's built-ins alone; `npm run package` shells out to the `zip` command that
+ships with macOS and Linux.
 
 Unit tests cover `src/lib/` — filename classification, URL parsing, the
 preview decision, the storage layer, and the fetch module. The browser-facing

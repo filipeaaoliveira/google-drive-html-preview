@@ -16,7 +16,10 @@ Run before every release, in both Chrome and Brave (default shields).
 | 10 | **View source** button | Shows escaped source; toggles back to the render |
 | 11 | **Back to Drive** button | Drive's code view loads and does not redirect back |
 | 12 | **Reload** button | Re-fetches and re-renders current file content |
+| 12a | **Reload** after replacing the file in Drive with a PDF | Clear "no longer an HTML file" message, not a garbage render |
 | 13 | Reload the viewer tab with F5 | Shows "already been opened" message, not a blank page |
+| 13a | **Back to Drive** on that "already been opened" page | Navigates to Drive's root — there is no file id on this path — and does not dead-end |
+| 13b | **Reload** and **View source** on that "already been opened" page | Both disabled; only **Back to Drive** is live |
 | 14 | Popup toggle off | No redirect on any HTML file |
 | 15 | Popup toggle back on | Redirect resumes |
 | 16 | A large HTML file (> 1 MB) | Renders without truncation |

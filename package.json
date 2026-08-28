@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test \"test/**/*.test.js\""
+    "test": "node --test \"test/**/*.test.js\"",
+    "package": "mkdir -p dist && rm -f \"dist/drive-html-preview-$npm_package_version.zip\" && zip -q -r -X \"dist/drive-html-preview-$npm_package_version.zip\" manifest.json icons src -x '*/.DS_Store' && unzip -l \"dist/drive-html-preview-$npm_package_version.zip\""
   }
 }
