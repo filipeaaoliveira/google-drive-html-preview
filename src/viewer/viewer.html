@@ -1,8 +1,30 @@
 <!doctype html>
-<!-- Placeholder. Implemented in Task 10. -->
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
+    <title>Drive HTML Preview</title>
+    <link rel="stylesheet" href="viewer.css" />
   </head>
-  <body></body>
+  <body>
+    <header class="toolbar">
+      <span class="filename" id="filename">Loading…</span>
+      <span class="spacer"></span>
+      <button type="button" id="toggle-source">View source</button>
+      <button type="button" id="reload">Reload</button>
+      <button type="button" id="back">Back to Drive</button>
+    </header>
+
+    <main class="stage">
+      <iframe
+        id="frame"
+        title="Rendered document"
+        src="../sandbox/sandbox.html"
+        sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads"
+      ></iframe>
+      <pre id="source" class="source" hidden></pre>
+      <p id="error" class="error" hidden></p>
+    </main>
+
+    <script type="module" src="viewer.js"></script>
+  </body>
 </html>
