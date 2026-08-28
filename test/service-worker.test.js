@@ -116,3 +116,50 @@ test('a request without a file id still takes the url-and-title path', async () 
   });
   assert.match(response.redirectTo, /^chrome-extension:\/\/test\/src\/viewer\/viewer\.html\?k=/);
 });
+
+function lastStashed() {
+  const payloads = [...session.values()];
+  return payloads[payloads.length - 1];
+}
+
+const FOLDER = 'https://drive.google.com/drive/folders/0ABCdefGHIjklMNO';
+
+test('an overlay request stashes the folder the user came from', async () => {
+  nextResponse = reply({ name: 'report.html' });
+  const response = await send({
+    ...OVERLAY,
+    fileId: '2xYqq9-aaBBccDDeeFFggHHiiJJkkLLmm',
+    href: FOLDER
+  });
+  assert.ok(response.redirectTo);
+  assert.equal(lastStashed().returnTo, FOLDER);
+});
+
+test('an overlay request stashes null when the reported href is not a Drive url', async () => {
+  nextResponse = reply({ name: 'report.html' });
+  const response = await send({
+    ...OVERLAY,
+    fileId: '3zQww8-aaBBccDDeeFFggHHiiJJkkLLmm',
+    href: 'https://evil.example/drive/home'
+  });
+  assert.ok(response.redirectTo);
+  assert.equal(lastStashed().returnTo, null);
+});
+
+test('a url-and-title request stashes no return url', async () => {
+  nextResponse = reply({ name: 'page.html' });
+  const response = await send({
+    type: 'PREVIEW_REQUEST',
+    href: `https://drive.google.com/file/d/4wPvv7-aaBBccDDeeFFggHHiiJJkkLLmm/view`,
+    title: 'page.html - Google Drive'
+  });
+  assert.ok(response.redirectTo);
+  assert.equal(lastStashed().returnTo, null);
+});
+
+test('a repeat overlay redirect for the same file is refused within the guard window', async () => {
+  const fileId = '5vOuu6-aaBBccDDeeFFggHHiiJJkkLLmm';
+  nextResponse = reply({ name: 'report.html' });
+  assert.ok((await send({ ...OVERLAY, fileId, href: FOLDER })).redirectTo);
+  assert.deepEqual(await send({ ...OVERLAY, fileId, href: FOLDER }), { redirectTo: null });
+});

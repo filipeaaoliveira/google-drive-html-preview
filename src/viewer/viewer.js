@@ -41,7 +41,7 @@ if (!payload) {
   start(payload);
 }
 
-function start({ fileId, name, source }) {
+function start({ fileId, name, source, returnTo }) {
   const label = name || 'Untitled.html';
   elements.filename.textContent = label;
   document.title = `${label} — Drive HTML Preview`;
@@ -67,7 +67,11 @@ function start({ fileId, name, source }) {
   });
 
   elements.back.addEventListener('click', () => {
-    location.replace(driveViewUrl(fileId, { noPreview: true }));
+    // A preview opened from Drive's overlay came from a folder, and the
+    // redirect replaced that history entry — so the file's own page would be a
+    // dead end with no way back to the folder. returnTo is validated in the
+    // service worker before it is stored; it is never a raw url from a message.
+    location.replace(returnTo || driveViewUrl(fileId, { noPreview: true }));
   });
 
   elements.reload.addEventListener('click', async () => {

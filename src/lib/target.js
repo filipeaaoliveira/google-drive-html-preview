@@ -54,3 +54,23 @@ export function labelContainsName(label, name) {
     from = at + 1;
   }
 }
+
+const DRIVE_ORIGIN = 'https://drive.google.com';
+
+/**
+ * Validates a url the viewer may navigate back to. A preview opened from
+ * Drive's overlay has to return the user to the folder they came from, and
+ * that url arrives in a message — so it is attacker-influenced input, not a
+ * formality. Only the exact Drive origin is allowed: any other host, any
+ * other scheme (javascript:, data:) and anything unparseable returns null.
+ */
+export function safeDriveReturnUrl(href) {
+  if (typeof href !== 'string' || href === '') return null;
+  let url;
+  try {
+    url = new URL(href);
+  } catch {
+    return null;
+  }
+  return url.origin === DRIVE_ORIGIN ? href : null;
+}

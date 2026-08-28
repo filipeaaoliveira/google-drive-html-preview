@@ -4,7 +4,8 @@ import {
   isDriveFileId,
   cleanDisplayName,
   namesMatch,
-  labelContainsName
+  labelContainsName,
+  safeDriveReturnUrl
 } from '../src/lib/target.js';
 
 const REAL_ID = '1gV6mm4-zZd7BklAt-W95qVGkcU2fyMTS';
@@ -70,4 +71,34 @@ test('labelContainsName is false when either side is empty', () => {
   assert.equal(labelContainsName('', 'report.html'), false);
   assert.equal(labelContainsName('report.html HTML', ''), false);
   assert.equal(labelContainsName(null, null), false);
+});
+
+test('safeDriveReturnUrl accepts a Drive folder url unchanged', () => {
+  for (const href of [
+    'https://drive.google.com/drive/home',
+    'https://drive.google.com/drive/folders/abc',
+    'https://drive.google.com/drive/u/0/folders/abc?usp=sharing'
+  ]) {
+    assert.equal(safeDriveReturnUrl(href), href);
+  }
+});
+
+test('safeDriveReturnUrl rejects anything not on the Drive origin', () => {
+  for (const href of [
+    'https://drive.usercontent.google.com/download?id=x',
+    'https://evil.example/drive/home',
+    'https://drive.google.com.evil.example/drive/home',
+    'http://drive.google.com/drive/home',
+    'javascript:alert(1)',
+    'data:text/html,<script>alert(1)</script>',
+    'chrome-extension://abc/src/viewer/viewer.html',
+    'not a url',
+    '',
+    null,
+    undefined,
+    42,
+    { href: 'https://drive.google.com/drive/home' }
+  ]) {
+    assert.equal(safeDriveReturnUrl(href), null, `href: ${String(href)}`);
+  }
 });

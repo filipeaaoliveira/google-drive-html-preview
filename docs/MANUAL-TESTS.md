@@ -28,6 +28,9 @@ Run before every release, in both Chrome and Brave (default shields).
 | 19 | Open an HTML file from a folder, go back to the folder, open a second HTML file | Both render |
 | 20 | Preview a video, close it, then open an HTML file in the same session | Renders the HTML file — never the video, whose closed dialog stays in the DOM |
 | 21 | Select several files in a folder, then open one | No redirect while the selection is ambiguous |
+| 22 | **Back to Drive** after opening an HTML file from a folder | Returns to that folder, not to the file's own page |
+| 23 | **Back to Drive** after opening a `/file/d/<id>/view` url directly | Still lands on the file's own page, with no redirect back |
+| 24 | Case 22, then let Drive restore the overlay | No redirect loop; the folder stays usable |
 
 Record the browser versions tested and the date alongside the results.
 

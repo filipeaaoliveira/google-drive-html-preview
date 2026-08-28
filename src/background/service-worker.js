@@ -1,5 +1,6 @@
 import { shouldConsiderPreview, shouldConsiderOverlayPreview } from '../lib/decide.js';
-import { namesMatch } from '../lib/target.js';
+import { namesMatch, safeDriveReturnUrl } from '../lib/target.js';
+import { createRedirectGuard } from '../lib/redirect-guard.js';
 import { fetchDriveFile, DriveFetchError } from '../lib/fetch-drive.js';
 import { createSourceStore } from '../lib/source-store.js';
 import { createSettings } from '../lib/settings.js';
@@ -13,12 +14,17 @@ const NOT_HTML_MESSAGE =
 
 const store = createSourceStore(chrome.storage.session);
 const settings = createSettings(chrome.storage.local);
+// Overlay redirects return the user to a url that still matches the trigger,
+// so one redirect per file id per window is all that can be allowed.
+const redirectGuard = createRedirectGuard();
 
-async function stash(file) {
+async function stash(file, returnTo = null) {
   const key = await store.put({
     fileId: file.fileId,
     name: file.name,
-    source: file.source
+    source: file.source,
+    // Where "Back to Drive" goes. Validated by the caller; never a raw href.
+    returnTo
   });
   return chrome.runtime.getURL(viewerPath(key));
 }
@@ -32,6 +38,11 @@ async function handlePreviewRequest({ href, title, fileId, expectedName }) {
     ? shouldConsiderOverlayPreview({ fileId, name: expectedName, enabled })
     : shouldConsiderPreview({ href, title, enabled });
   if (!decision.consider) return { redirectTo: null };
+
+  // The overlay leaves the url untouched, so returning to the folder lands on
+  // the very url that triggered this redirect. Without a guard, a restored
+  // overlay would redirect again immediately and trap the user.
+  if (fileId && !redirectGuard.shouldRedirect(decision.fileId)) return { redirectTo: null };
 
   try {
     const file = await fetchDriveFile(decision.fileId);
@@ -50,7 +61,11 @@ async function handlePreviewRequest({ href, title, fileId, expectedName }) {
       );
       return { redirectTo: null };
     }
-    return { redirectTo: await stash(file) };
+    // Only the overlay path came from somewhere else: on a /file/d/<id>/view
+    // url the user really was on the file's own page, so there is nothing to
+    // return to and today's behaviour is already right.
+    const returnTo = fileId ? safeDriveReturnUrl(href) : null;
+    return { redirectTo: await stash(file, returnTo) };
   } catch (error) {
     // A failed fetch must leave Drive's own page working. Never redirect on error.
     console.warn('Drive HTML Preview: fetch failed', error);
