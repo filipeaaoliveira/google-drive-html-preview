@@ -71,9 +71,48 @@ and internal engineering notes, all of which a reviewer would see.
 - [x] Upload package built by `npm run package`
 - [ ] Store icon at 128×128
 - [ ] At least one screenshot at 1280×800 or 640×400
-- [ ] Privacy policy published at a public URL
-- [ ] Short description (132 characters max)
-- [ ] Detailed description
+- [x] Privacy policy published at a public URL
+- [x] Short description (132 characters max)
+- [x] Detailed description
+
+## Listing copy
+
+**Privacy policy URL:** https://filipeaaoliveira.github.io/google-drive-html-preview/PRIVACY.html
+
+**Short description** (92/132 characters):
+
+> Renders HTML files stored in Google Drive as web pages instead of showing their source code.
+
+**Detailed description:**
+
+> Google Drive shows HTML files as source code. There is no setting that changes
+> this — Drive's own web hosting was retired in 2016 — so a file you open in Drive
+> is a wall of markup instead of the page it describes.
+>
+> Drive HTML Preview renders it instead. Open an HTML file in Drive and you get the
+> page, full screen, with a toolbar to switch back to the source or return to your
+> folder.
+>
+> How it works
+>
+> The extension uses the Google session you are already signed in to. It asks for no
+> OAuth scopes, shows no consent screen, and has no server: your file is downloaded
+> by your own browser and rendered locally. Nothing is transmitted anywhere, and
+> there is no analytics or telemetry of any kind.
+>
+> Your file is rendered inside a sandboxed frame with its own opaque origin, so the
+> document cannot reach the extension's APIs, its storage, or your cookies.
+>
+> Scope
+>
+> Files are expected to be self-contained — everything inline, or loaded from public
+> CDNs. HTML that references sibling files in the same Drive folder for CSS,
+> JavaScript or images will not resolve them.
+>
+> Permissions
+>
+> Storage, plus access to drive.google.com and drive.usercontent.google.com. Nothing
+> else. Each is justified in the repository's store listing notes.
 
 ## Outstanding actions before submission
 
