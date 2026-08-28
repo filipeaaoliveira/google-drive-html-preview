@@ -1,1 +1,73 @@
-// Placeholder. Implemented in Task 8.
+import { shouldConsiderPreview } from '../lib/decide.js';
+import { fetchDriveFile, DriveFetchError } from '../lib/fetch-drive.js';
+import { createSourceStore } from '../lib/source-store.js';
+import { createSettings } from '../lib/settings.js';
+import { viewerPath } from '../lib/messages.js';
+
+const SIGNED_OUT_MESSAGE =
+  'You appear to be signed out of Google. Sign in to Drive and try again.';
+
+const store = createSourceStore(chrome.storage.session);
+const settings = createSettings(chrome.storage.local);
+
+// The viewer reads these from storage, so they must survive the redirect but
+// must not outlive the browsing session.
+chrome.storage.session.setAccessLevel?.({ accessLevel: 'TRUSTED_CONTEXTS' });
+
+async function stash(file) {
+  const key = await store.put({
+    fileId: file.fileId,
+    name: file.name,
+    source: file.source
+  });
+  return chrome.runtime.getURL(viewerPath(key));
+}
+
+async function handlePreviewRequest({ href, title }) {
+  const decision = shouldConsiderPreview({
+    href,
+    title,
+    enabled: await settings.isEnabled()
+  });
+  if (!decision.consider) return { redirectTo: null };
+
+  try {
+    const file = await fetchDriveFile(decision.fileId);
+    // Google answers a signed-out request with its sign-in page as HTTP 200
+    // text/html. Rendering that as the user's document would be worse than
+    // leaving Drive's own page alone.
+    if (file.isSignInPage) return { redirectTo: null };
+    if (!file.isHtml) return { redirectTo: null };
+    return { redirectTo: await stash(file) };
+  } catch (error) {
+    // A failed fetch must leave Drive's own page working. Never redirect on error.
+    console.warn('Drive HTML Preview: fetch failed', error);
+    return { redirectTo: null };
+  }
+}
+
+async function handleRefetch({ fileId }) {
+  try {
+    const file = await fetchDriveFile(fileId);
+    // This path is user-triggered, so an invisible no-op would look like a bug.
+    if (file.isSignInPage) return { error: SIGNED_OUT_MESSAGE };
+    return { viewerUrl: await stash(file) };
+  } catch (error) {
+    const detail = error instanceof DriveFetchError ? `HTTP ${error.status}` : String(error);
+    return { error: `Could not reload the file (${detail}).` };
+  }
+}
+
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  const handler =
+    message?.type === 'PREVIEW_REQUEST'
+      ? handlePreviewRequest
+      : message?.type === 'REFETCH'
+        ? handleRefetch
+        : null;
+
+  if (!handler) return false;
+
+  handler(message).then(sendResponse);
+  return true; // keep the message channel open for the async response
+});
