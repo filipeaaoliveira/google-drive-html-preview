@@ -71,8 +71,14 @@ function loadReader() {
 
 const read = loadReader();
 
+// The real Drive DOM: the selected row carries data-id but NO aria-label of its
+// own; the filename label sits on a descendant of that row.
 const listRow = (name, id) =>
-  element({ 'aria-selected': 'true', 'data-id': id, 'aria-label': `${name} HTML` });
+  element({
+    'aria-selected': 'true',
+    'data-id': id,
+    children: [element({ children: [element({ 'aria-label': `${name} HTML` })] })]
+  });
 
 const openDialog = (name) =>
   element({
@@ -140,10 +146,20 @@ test('returns null when no row is selected', () => {
 
 test('returns null when the selected row carries a bogus id', () => {
   const name = 'report.html';
+  const doc = makeDocument([openDialog(name), listRow(name, '../x')]);
+  assert.equal(read(doc), null);
+});
+
+test('returns null when nothing in the selected row\'s subtree names the file', () => {
   const doc = makeDocument([
-    openDialog(name),
-    element({ 'aria-selected': 'true', 'data-id': '../x', 'aria-label': `${name} HTML` })
+    openDialog('report.html'),
+    element({ 'aria-selected': 'true', 'data-id': ID, children: [element({ 'aria-label': 'More actions' })] })
   ]);
+  assert.equal(read(doc), null);
+});
+
+test('returns null when the row names a file the dialog name is only part of', () => {
+  const doc = makeDocument([openDialog('report.html'), listRow('myreport.html', ID)]);
   assert.equal(read(doc), null);
 });
 

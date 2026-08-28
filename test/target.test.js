@@ -1,6 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isDriveFileId, cleanDisplayName, namesMatch } from '../src/lib/target.js';
+import {
+  isDriveFileId,
+  cleanDisplayName,
+  namesMatch,
+  labelContainsName
+} from '../src/lib/target.js';
 
 const REAL_ID = '1gV6mm4-zZd7BklAt-W95qVGkcU2fyMTS';
 
@@ -42,4 +47,27 @@ test('namesMatch is false when either name is empty or missing', () => {
   assert.equal(namesMatch('report.html', null), false);
   assert.equal(namesMatch(undefined, undefined), false);
   assert.equal(namesMatch('   ', 'report.html'), false);
+});
+
+test('labelContainsName matches a name that is the whole label', () => {
+  assert.equal(labelContainsName('report.html', 'report.html'), true);
+});
+
+test('labelContainsName matches a name bounded by spaces or commas', () => {
+  assert.equal(labelContainsName('HTML, report.html', 'report.html'), true);
+  assert.equal(labelContainsName('report.html HTML', 'report.html'), true);
+  assert.equal(labelContainsName('Shared, report.html, owned by you', 'report.html'), true);
+  assert.equal(labelContainsName('  report.html.  ', 'report.html'), true);
+});
+
+test('labelContainsName rejects a name that is only part of a longer word', () => {
+  assert.equal(labelContainsName('myreport.html HTML', 'report.html'), false);
+  assert.equal(labelContainsName('banana.html HTML', 'a.html'), false);
+  assert.equal(labelContainsName('report.htmlx', 'report.html'), false);
+});
+
+test('labelContainsName is false when either side is empty', () => {
+  assert.equal(labelContainsName('', 'report.html'), false);
+  assert.equal(labelContainsName('report.html HTML', ''), false);
+  assert.equal(labelContainsName(null, null), false);
 });

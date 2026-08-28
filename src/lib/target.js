@@ -31,3 +31,26 @@ export function namesMatch(expected, actual) {
   const b = cleanDisplayName(actual);
   return a !== '' && b !== '' && a === b;
 }
+
+/**
+ * True when `label` names exactly `name`. The name must sit at a word or comma
+ * boundary: Drive labels a row "report.html HTML" and a dialog "HTML, report.html.",
+ * but a plain substring test would also accept "myreport.html" for "report.html",
+ * which is a different file.
+ */
+export function labelContainsName(label, name) {
+  const haystack = cleanDisplayName(label);
+  const needle = cleanDisplayName(name);
+  if (haystack === '' || needle === '') return false;
+
+  let from = 0;
+  for (;;) {
+    const at = haystack.indexOf(needle, from);
+    if (at === -1) return false;
+    const before = at === 0 ? ' ' : haystack[at - 1];
+    const afterIndex = at + needle.length;
+    const after = afterIndex === haystack.length ? ' ' : haystack[afterIndex];
+    if ((before === ' ' || before === ',') && (after === ' ' || after === ',')) return true;
+    from = at + 1;
+  }
+}

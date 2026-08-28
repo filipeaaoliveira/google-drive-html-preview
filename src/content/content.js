@@ -92,6 +92,38 @@
     return candidates;
   }
 
+  // Duplicated from labelContainsName() in the shared target helper, for the
+  // same reason as cleanLabel above: keep the two in step. A plain substring
+  // test would accept "myreport.html" for "report.html", a different file, so
+  // the name must sit at a start/end, space or comma boundary.
+  function labelNamesFile(label, name) {
+    const haystack = cleanLabel(label);
+    const needle = cleanLabel(name);
+    if (haystack === '' || needle === '') return false;
+
+    let from = 0;
+    for (;;) {
+      const at = haystack.indexOf(needle, from);
+      if (at === -1) return false;
+      const before = at === 0 ? ' ' : haystack[at - 1];
+      const afterIndex = at + needle.length;
+      const after = afterIndex === haystack.length ? ' ' : haystack[afterIndex];
+      if ((before === ' ' || before === ',') && (after === ' ' || after === ',')) return true;
+      from = at + 1;
+    }
+  }
+
+  // Every aria-label carried by an element or anything beneath it. Drive splits
+  // the two halves of a row's identity across a subtree: the data-id sits on the
+  // row, while the filename label sits on a descendant of it.
+  function labelsWithin(el) {
+    const labels = [el.getAttribute('aria-label')];
+    for (const child of el.querySelectorAll('[aria-label]')) {
+      labels.push(child.getAttribute('aria-label'));
+    }
+    return labels;
+  }
+
   // Drive leaves the previous preview's dialog in the DOM as aria-hidden.
   // Taking the first [role="dialog"] would target a file the user closed.
   function visibleDialog(doc) {
@@ -109,8 +141,7 @@
     const dialog = visibleDialog(doc);
     if (!dialog) return null; // the common case: bail out before touching the big DOM
 
-    const labels = [dialog.getAttribute('aria-label')];
-    for (const el of dialog.querySelectorAll('[aria-label]')) labels.push(el.getAttribute('aria-label'));
+    const labels = labelsWithin(dialog);
     if (!labels.some((label) => nameCandidates(label).length > 0)) return null;
 
     const selected = doc.querySelectorAll('[aria-selected="true"][data-id]');
@@ -120,10 +151,10 @@
     const fileId = row.getAttribute('data-id');
     if (!DRIVE_FILE_ID.test(fileId || '')) return null;
 
-    const rowLabel = cleanLabel(row.getAttribute('aria-label'));
+    const rowLabels = labelsWithin(row);
     for (const label of labels) {
       for (const name of nameCandidates(label)) {
-        if (rowLabel.includes(name)) return { fileId, name };
+        if (rowLabels.some((rowLabel) => labelNamesFile(rowLabel, name))) return { fileId, name };
       }
     }
     return null;
