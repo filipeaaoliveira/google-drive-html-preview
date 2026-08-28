@@ -2,11 +2,16 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fetchDriveFile, downloadUrl, DriveFetchError } from '../src/lib/fetch-drive.js';
 
-function fakeResponse({ status = 200, headers = {}, body = '' } = {}) {
+function fakeResponse({
+  status = 200,
+  headers = {},
+  body = '',
+  url = 'https://drive.usercontent.google.com/download'
+} = {}) {
   return {
     ok: status >= 200 && status < 300,
     status,
-    url: 'https://drive.usercontent.google.com/download',
+    url,
     headers: { get: (name) => headers[name.toLowerCase()] ?? null },
     text: async () => body
   };
@@ -48,7 +53,8 @@ test('fetchDriveFile returns the name, source, and an isHtml verdict', async () 
     name: 'report.html',
     contentType: 'text/html',
     source: '<h1>report</h1>',
-    isHtml: true
+    isHtml: true,
+    isSignInPage: false
   });
 });
 
@@ -88,4 +94,63 @@ test('fetchDriveFile rejects a malformed file id before hitting the network', as
   };
   await assert.rejects(() => fetchDriveFile('../evil', fetchImpl), /invalid drive file id/i);
   assert.equal(called, false);
+});
+
+test('fetchDriveFile trusts the filename over a disagreeing Content-Type', async () => {
+  const fetchImpl = async () =>
+    fakeResponse({
+      headers: {
+        'content-disposition': 'attachment; filename="report.html"',
+        'content-type': 'application/octet-stream'
+      },
+      body: '<h1>report</h1>'
+    });
+  assert.equal((await fetchDriveFile('1AbC', fetchImpl)).isHtml, true);
+});
+
+test('fetchDriveFile flags a redirect to the sign-in page', async () => {
+  const fetchImpl = async () =>
+    fakeResponse({
+      headers: { 'content-type': 'text/html; charset=utf-8' },
+      body: '<form action="/signin">',
+      url: 'https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fdrive.google.com%2F'
+    });
+  const result = await fetchDriveFile('1AbC', fetchImpl);
+  assert.equal(result.isSignInPage, true);
+  assert.equal(result.isHtml, false);
+});
+
+test('fetchDriveFile does not flag a response served from the download host', async () => {
+  const fetchImpl = async () =>
+    fakeResponse({
+      headers: {
+        'content-disposition': 'attachment; filename="report.html"',
+        'content-type': 'text/html'
+      },
+      body: '<h1>report</h1>',
+      url: 'https://drive.usercontent.google.com/download?id=1AbC&export=download'
+    });
+  const result = await fetchDriveFile('1AbC', fetchImpl);
+  assert.equal(result.isSignInPage, false);
+  assert.equal(result.isHtml, true);
+});
+
+test('fetchDriveFile treats a missing or unparseable url as not a sign-in page', async () => {
+  const missing = async () =>
+    fakeResponse({
+      headers: { 'content-type': 'text/html' },
+      body: '<p>x</p>',
+      url: null
+    });
+  assert.equal((await fetchDriveFile('1AbC', missing)).isSignInPage, false);
+
+  const unparseable = async () =>
+    fakeResponse({
+      headers: { 'content-type': 'text/html' },
+      body: '<p>x</p>',
+      url: 'not a url'
+    });
+  const result = await fetchDriveFile('1AbC', unparseable);
+  assert.equal(result.isSignInPage, false);
+  assert.equal(result.isHtml, true);
 });
