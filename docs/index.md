@@ -120,15 +120,14 @@ title: Drive HTML Preview
       <summary>Can a page I open send data somewhere?</summary>
       <div class="faq__answer"><div>
         <p>
-          Yes, and the privacy policy says so rather than burying it. The extension
-          transmits nothing. A document you open can reference scripts, fonts or images
-          from third-party servers and make its own requests, as it could in any
-          browser tab, and the extension does not block that.
+          Yes. The extension itself transmits nothing, but a document you open can
+          reference scripts, fonts or images from third-party servers and make its own
+          requests, as it could in any browser tab. The extension does not block that.
         </p>
         <p>
-          It runs in a sandboxed frame, so it can talk to its own author's servers and
-          to nothing belonging to you.
-          <a href="{{ '/PRIVACY.html' | relative_url }}">Read the full policy</a>.
+          The document runs in a sandboxed frame, so it can reach its own author's
+          servers and nothing belonging to you. The privacy policy covers this.
+          <a href="{{ '/PRIVACY.html' | relative_url }}">Read it here</a>.
         </p>
       </div></div>
     </details>
