@@ -46,7 +46,11 @@
         title
       });
     } catch {
-      // The service worker may be restarting; a later title change retries.
+      // The service worker may be unreachable — restarting, or the extension
+      // reloaded. The title has already been marked as reported, so nothing
+      // retries it: this url gets no preview unless the title changes again,
+      // which on a direct page load it will not. Drive's own page keeps
+      // working, which is the property that matters.
       return;
     }
 

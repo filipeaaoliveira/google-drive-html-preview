@@ -7,12 +7,11 @@ import { viewerPath } from '../lib/messages.js';
 const SIGNED_OUT_MESSAGE =
   'You appear to be signed out of Google. Sign in to Drive and try again.';
 
+const NOT_HTML_MESSAGE =
+  'This file is no longer an HTML file, so there is nothing to preview. Open it from Google Drive instead.';
+
 const store = createSourceStore(chrome.storage.session);
 const settings = createSettings(chrome.storage.local);
-
-// The viewer reads these from storage, so they must survive the redirect but
-// must not outlive the browsing session.
-chrome.storage.session.setAccessLevel?.({ accessLevel: 'TRUSTED_CONTEXTS' });
 
 async function stash(file) {
   const key = await store.put({
@@ -51,6 +50,9 @@ async function handleRefetch({ fileId }) {
     const file = await fetchDriveFile(fileId);
     // This path is user-triggered, so an invisible no-op would look like a bug.
     if (file.isSignInPage) return { error: SIGNED_OUT_MESSAGE };
+    // The file may have been replaced in Drive since the preview was opened.
+    // Writing a PDF's bytes into the sandbox would produce a garbage page.
+    if (!file.isHtml) return { error: NOT_HTML_MESSAGE };
     return { viewerUrl: await stash(file) };
   } catch (error) {
     const detail = error instanceof DriveFetchError ? `HTTP ${error.status}` : String(error);
