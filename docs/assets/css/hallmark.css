@@ -1,7 +1,8 @@
 /* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4
  * Hallmark · macrostructure: Marquee Hero (+ Conversational FAQ below fold)
  * genre: modern-minimal · theme: Cobalt · tone: technical · anchor hue: cool (265)
- * nav: N9 edge-aligned · footer: Ft2 inline single line
+ * nav: N9 edge-aligned (wordmark left, single CTA right, no link row)
+ * footer: Ft2 inline single line
  * enrichment: Tier A CSS art (source-vs-rendered type comparison, no chrome)
  * axes: paper light · display grotesk-sans · accent cool
  */
@@ -156,19 +157,8 @@ code, kbd, pre { font-family: var(--font-mono); font-size: 0.9em; }
   clip-path: polygon(36% 26%, 76% 50%, 36% 74%);
 }
 
-.topbar__nav {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  font-size: var(--text-sm);
-}
-
-.topbar__nav a {
-  color: var(--color-ink-2);
-  text-decoration: none;
-  white-space: nowrap;
-}
-.topbar__nav a:hover { color: var(--color-ink); }
+/* N9: wordmark hard-left, one CTA hard-right, nothing between. The absence of
+   a link row is the archetype; secondary destinations live in the footer. */
 
 .topbar__cta {
   color: var(--color-accent-ink) !important;
@@ -443,7 +433,6 @@ code, kbd, pre { font-family: var(--font-mono); font-size: 0.9em; }
   .spec { grid-template-columns: minmax(0, 1fr); gap: 0.15rem var(--space-md); }
   .spec dd { margin-bottom: var(--space-sm); }
   .topbar { gap: var(--space-sm); }
-  .topbar__nav { gap: var(--space-sm); font-size: var(--text-xs); }
 }
 
 @media (max-width: 380px) {

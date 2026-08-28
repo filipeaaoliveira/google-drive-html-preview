@@ -20,11 +20,7 @@
         <span class="topbar__glyph" aria-hidden="true"></span>
         Drive HTML Preview
       </a>
-      <nav class="topbar__nav" aria-label="Primary">
-        <a href="{{ '/PRIVACY.html' | relative_url }}">Privacy</a>
-        <a href="{{ site.repo }}">Source</a>
-        <a class="topbar__cta" href="{{ site.repo }}/releases/latest">Download</a>
-      </nav>
+      <a class="topbar__cta" href="{{ site.repo }}/releases/latest">Download</a>
     </header>
 
     <main id="main">
@@ -33,9 +29,11 @@
 
     <footer class="colophon">
       <p>
-        Drive HTML Preview. MIT licensed.
-        <a href="{{ site.repo }}">Source on GitHub</a>.
-        <a href="{{ '/PRIVACY.html' | relative_url }}">Privacy policy</a>.
+        Drive HTML Preview, version 1.0.1. MIT licensed.
+        <a href="{{ site.repo }}">Source</a>.
+        <a href="{{ '/PRIVACY.html' | relative_url }}">Privacy</a>.
+        <a href="{{ site.repo }}/blob/main/CHANGELOG.md">Changelog</a>.
+        <a href="{{ site.repo }}/security/advisories/new">Report a vulnerability</a>.
       </p>
     </footer>
   </body>
