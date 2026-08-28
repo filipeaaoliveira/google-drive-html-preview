@@ -19,6 +19,10 @@ function fail(message) {
   elements.source.hidden = true;
   elements.error.hidden = false;
   elements.error.textContent = message;
+  // Once an error is showing there is nothing to toggle or reload; "Back to
+  // Drive" stays enabled because it is the escape hatch.
+  elements.toggleSource.disabled = true;
+  elements.reload.disabled = true;
 }
 
 const key = new URLSearchParams(location.search).get('k');
@@ -36,12 +40,16 @@ function start({ fileId, name, source }) {
   elements.filename.textContent = label;
   document.title = `${label} — Drive HTML Preview`;
 
-  // The sandbox announces itself once loaded; only then can it receive the source.
-  window.addEventListener('message', (event) => {
-    if (event.source === elements.frame.contentWindow && event.data?.type === 'SANDBOX_READY') {
+  // Attach the load listener BEFORE assigning src, so the event cannot be missed.
+  // This is what removes the startup race: ordering stops mattering entirely.
+  elements.frame.addEventListener(
+    'load',
+    () => {
       elements.frame.contentWindow.postMessage({ type: 'RENDER', source }, '*');
-    }
-  });
+    },
+    { once: true }
+  );
+  elements.frame.src = '../sandbox/sandbox.html';
 
   elements.source.textContent = source;
 
@@ -57,7 +65,13 @@ function start({ fileId, name, source }) {
   });
 
   elements.reload.addEventListener('click', async () => {
-    const response = await chrome.runtime.sendMessage({ type: 'REFETCH', fileId });
+    let response;
+    try {
+      response = await chrome.runtime.sendMessage({ type: 'REFETCH', fileId });
+    } catch (cause) {
+      fail(`Could not reach the extension to reload the file: ${cause?.message ?? cause}`);
+      return;
+    }
     if (response?.viewerUrl) {
       location.replace(response.viewerUrl);
     } else {
