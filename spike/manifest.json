@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Drive fetch spike",
+  "version": "0.0.1",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://drive.google.com/*",
+    "https://drive.usercontent.google.com/*"
+  ],
+  "background": { "service_worker": "sw.js", "type": "module" }
+}
