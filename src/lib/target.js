@@ -21,7 +21,7 @@ export function cleanDisplayName(raw) {
 }
 
 /**
- * True when two names are the same file. Case-sensitive on purpose: Drive
+ * True when two names are the same file. Case-sensitive, because Drive
  * preserves filename case, and `Report.html` and `report.html` can both exist
  * in one folder as different files. Empty names never match — an unverifiable
  * identity must not be treated as a confirmation.

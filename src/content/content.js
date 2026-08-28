@@ -1,6 +1,6 @@
-// MV3 content scripts cannot be ES modules, so this file stays deliberately
-// dumb: it reports the page title as it changes and lets the service worker
-// decide everything. Drive sets <title> to "<filename> - Google Drive" early
+// MV3 content scripts cannot be ES modules, so this file holds no logic: it
+// reports the page title as it changes and lets the service worker decide
+// everything. Drive sets <title> to "<filename> - Google Drive" early
 // in page load, which is the cheapest reliable signal that a file is HTML.
 //
 // Drive is a single-page app: opening a file from a folder is a pushState
@@ -67,7 +67,7 @@
 
   // Duplicated from cleanDisplayName() in the shared target helper: a classic
   // content script cannot load modules, so this small normalisation is repeated
-  // here on purpose. Keep the two in step.
+  // here. Keep the two in step.
   function cleanLabel(raw) {
     if (typeof raw !== 'string') return '';
     const collapsed = raw.trim().replace(/\s+/g, ' ');
@@ -165,7 +165,7 @@
 
   // Whether a file is worth attempting again is a decision, so it lives in the
   // service worker with the rest of them, in src/lib/attempt-log.js. Keeping it
-  // there is what makes it testable: an earlier version tracked attempts here
+  // there keeps it testable: an earlier version tracked attempts here
   // and marked a file as tried before knowing the answer, which left a file
   // unopenable for the life of the page after any transient decline, such as
   // the popup toggle being off.

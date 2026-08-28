@@ -68,8 +68,8 @@ async function handlePreviewRequest({ href, title, fileId, expectedName }) {
     // Content-Disposition — is a mismatch: an identity that cannot be checked
     // must not be rendered.
     if (expectedName && !namesMatch(expectedName, file.name)) {
-      // Deliberately nameless: this lands in a console that gets screen-shared,
-      // and the file id in the request is enough to trace a real mismatch.
+      // No filename here: this lands in a console that gets screen-shared, and
+      // the file id in the request is enough to trace a real mismatch.
       console.warn('Drive HTML Preview: declining, the file Drive returned is not the one requested');
       attemptLog.recordDurableDecline(decision.fileId);
       return { redirectTo: null };

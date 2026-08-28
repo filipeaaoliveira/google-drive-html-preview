@@ -47,7 +47,7 @@ function start({ fileId, name, source, returnTo }) {
   document.title = `${label} — Drive HTML Preview`;
 
   // Attach the load listener BEFORE assigning src, so the event cannot be missed.
-  // This is what removes the startup race: ordering stops mattering entirely.
+  // Load order then has no effect on whether the source arrives.
   elements.frame.addEventListener(
     'load',
     () => {

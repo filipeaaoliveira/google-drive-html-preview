@@ -7,7 +7,7 @@
 // a file that was already judged unrenderable must not be downloaded again each
 // time.
 //
-// It deliberately does not use the nopreview flag: that would suppress every
+// It does not use the nopreview flag: that would suppress every
 // later file opened from the same folder page, since the url never changes.
 
 const DEFAULT_WINDOW_MS = 2000;
