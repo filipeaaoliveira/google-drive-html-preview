@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The test script passes a glob to node --test, which needs a recent runner.
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Run tests
+        run: npm test
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build the extension zip
+        run: npm run package
+
+      # The zip is what reaches users, so prove it holds the runtime files and
+      # nothing else. A stray test or doc file here is a failed build.
+      - name: Verify the zip contains only runtime files
+        run: |
+          unzip -Z1 dist/drive-html-preview-*.zip > /tmp/entries.txt
+          cat /tmp/entries.txt
+          if grep -vE '^(manifest\.json|icons/|src/)' /tmp/entries.txt; then
+            echo "::error::zip contains files outside manifest.json, icons/ and src/"
+            exit 1
+          fi
+          for required in manifest.json icons/icon-128.png src/background/service-worker.js; do
+            grep -qx "$required" /tmp/entries.txt || {
+              echo "::error::zip is missing $required"; exit 1; }
+          done
+
+      - name: Check the icons regenerate reproducibly
+        run: |
+          node tools/make-icons.js
+          git diff --exit-code -- icons/ || {
+            echo "::error::tools/make-icons.js does not reproduce the committed icons"
+            exit 1; }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: extension-zip
+          path: dist/*.zip

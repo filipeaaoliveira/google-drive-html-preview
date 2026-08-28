@@ -1,5 +1,8 @@
 # Drive HTML Preview
 
+[![CI](https://github.com/filipeaaoliveira/google-drive-html-preview/actions/workflows/ci.yml/badge.svg)](https://github.com/filipeaaoliveira/google-drive-html-preview/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Google Drive shows HTML files as source code. This Chromium extension renders
 them as web pages instead.
 
@@ -103,3 +106,21 @@ no automated coverage and are checked by hand in Chrome and Brave.
 
 `docs/PRIVACY.md` is the privacy policy, published at
 https://filipeaaoliveira.github.io/google-drive-html-preview/PRIVACY.html
+
+CI runs the suite on Node 22 and 24, builds the zip, and fails the build if the
+zip picks up anything outside `manifest.json`, `icons/` and `src/`.
+
+## Contributing
+
+`CONTRIBUTING.md` covers the layout of the code, the two rules that carry the
+security model, and what has to be checked by hand because it has no automated
+coverage. `CHANGELOG.md` records what changed between releases.
+
+Report security issues privately through
+[GitHub's advisory form](https://github.com/filipeaaoliveira/google-drive-html-preview/security/advisories/new)
+rather than as a public issue. `SECURITY.md` explains what counts as a
+vulnerability in an extension whose job is rendering untrusted HTML.
+
+## License
+
+MIT. See `LICENSE`.

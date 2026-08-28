@@ -1,0 +1,81 @@
+name: Bug report
+description: Something the extension does wrong
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If a viewed document can reach the extension's storage or APIs, or the
+        wrong file is rendered, report it privately as a
+        [security advisory](https://github.com/filipeaaoliveira/google-drive-html-preview/security/advisories/new)
+        instead of here.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: how-opened
+    attributes:
+      label: How did you open the file?
+      description: Drive behaves differently in each case, and the extension detects them differently.
+      options:
+        - From a folder listing, where Drive opens an overlay and the URL stays on the folder
+        - Through a /file/d/<id>/view link
+        - Some other way, described above
+    validations:
+      required: true
+
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      options: [Chrome, Brave, Other Chromium browser]
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Browser version
+      placeholder: "e.g. 141.0.7390.55"
+    validations:
+      required: true
+
+  - type: textarea
+    id: dom
+    attributes:
+      label: What Drive's page exposes
+      description: |
+        If the extension does nothing when you open an HTML file, run this in the
+        console on the Drive tab with the file open and paste the result. It shows
+        what the extension can see, and it usually identifies the problem on its own.
+      value: |
+        ```js
+        (() => {
+          const isId = /^[-\w]{25,}$/;
+          return {
+            dialogs: [...document.querySelectorAll('[role="dialog"]')].map(d => ({
+              ariaHidden: d.getAttribute('aria-hidden'),
+              label: d.getAttribute('aria-label'),
+              renders: !!(d.offsetWidth || d.offsetHeight || d.getClientRects().length)
+            })),
+            selectedRows: [...document.querySelectorAll('[aria-selected="true"][data-id]')]
+              .map(e => ({ id: e.getAttribute('data-id'), label: e.getAttribute('aria-label') }))
+          };
+        })()
+        ```
+
+        Result:
+
+  - type: textarea
+    id: console
+    attributes:
+      label: Service worker console
+      description: |
+        Any errors from chrome://extensions, on the extension's card, under
+        "service worker". Redact file IDs and file names you would rather not share.

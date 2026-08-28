@@ -1,0 +1,33 @@
+name: Feature request
+description: Suggest a change
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The README's "Known limitations" section lists behaviour that is
+        deliberate rather than missing. Worth a look first.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do
+      description: The problem you hit, rather than the solution you have in mind.
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you would like to happen
+    validations:
+      required: true
+
+  - type: textarea
+    id: permissions
+    attributes:
+      label: Would this need a new permission?
+      description: |
+        The extension asks for `storage` and two host permissions, and keeping
+        that list short is deliberate. Anything needing more, such as
+        `webNavigation` or `tabs`, has to be worth the install prompt it adds.
