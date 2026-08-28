@@ -1,0 +1,20 @@
+title: Drive HTML Preview
+description: >-
+  Renders HTML files stored in Google Drive as web pages instead of showing
+  their source code. A Chromium extension for Chrome and Brave.
+url: https://filipeaaoliveira.github.io
+baseurl: /google-drive-html-preview
+repo: https://github.com/filipeaaoliveira/google-drive-html-preview
+
+# No theme: the layouts in _layouts/ are the whole design.
+plugins:
+  - jekyll-seo-tag
+
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
+
+exclude:
+  - superpowers
