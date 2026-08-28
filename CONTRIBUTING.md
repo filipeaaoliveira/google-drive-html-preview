@@ -20,8 +20,8 @@ and service worker changes need that reload before they take effect.
 ## How the code is arranged
 
 `src/lib/` holds every decision the extension makes, as pure functions with no
-reference to the `chrome` global. That is what makes them testable under Node,
-and it is the rule most worth preserving:
+reference to the `chrome` global, which keeps them testable under Node. Preserve
+that rule before any other:
 
 - `filename.js` decides whether a name is HTML and parses `Content-Disposition`
 - `drive-url.js` parses Drive file URLs and the `nopreview` escape hatch

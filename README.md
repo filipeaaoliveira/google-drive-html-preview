@@ -53,8 +53,6 @@ from public CDNs.
 
 ## Known limitations
 
-The extension does not handle the cases below, and that is deliberate.
-
 Multi-file sites are out of scope. HTML that references sibling Drive files for
 CSS, JavaScript, or images will not resolve them.
 

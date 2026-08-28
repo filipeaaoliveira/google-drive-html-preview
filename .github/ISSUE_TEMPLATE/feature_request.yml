@@ -5,8 +5,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        The README's "Known limitations" section lists behaviour that is
-        deliberate rather than missing. Worth a look first.
+        The README's "Known limitations" section lists what the extension does
+        not handle. Worth a look first.
 
   - type: textarea
     id: problem
@@ -28,6 +28,6 @@ body:
     attributes:
       label: Would this need a new permission?
       description: |
-        The extension asks for `storage` and two host permissions, and keeping
-        that list short is deliberate. Anything needing more, such as
-        `webNavigation` or `tabs`, has to be worth the install prompt it adds.
+        The extension asks for `storage` and two host permissions. Anything
+        needing more, such as `webNavigation` or `tabs`, has to be worth the
+        install prompt it adds.
