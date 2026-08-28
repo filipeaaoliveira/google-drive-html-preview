@@ -10,6 +10,10 @@
 
 (() => {
   const GIVE_UP_AFTER_MS = 10000;
+  const OVERLAY_DEBOUNCE_MS = 200;
+  const MAX_ATTEMPTED = 50;
+  const DRIVE_FILE_ID = /^[A-Za-z0-9_-]{10,}$/;
+  const HTML_NAME = /.\.html?$/i;
 
   let currentUrl = null;
   let firstSeenAt = 0;
@@ -62,6 +66,137 @@
     location.replace(response.redirectTo);
   }
 
+  // Duplicated from cleanDisplayName() in the shared target helper: a classic
+  // content script cannot load modules, so this small normalisation is repeated
+  // here on purpose. Keep the two in step.
+  function cleanLabel(raw) {
+    if (typeof raw !== 'string') return '';
+    const collapsed = raw.trim().replace(/\s+/g, ' ');
+    return collapsed.endsWith('.') ? collapsed.slice(0, -1).trim() : collapsed;
+  }
+
+  // Drive wraps the name in prose: "Displaying report.html.", "HTML, report.html.".
+  // Filenames may themselves contain spaces and commas, so rather than guessing
+  // where the name starts, every suffix that begins at a word or comma boundary
+  // and ends in .html/.htm is offered as a candidate, longest first. Only a
+  // candidate the selected row's own label confirms is used.
+  function nameCandidates(raw) {
+    const cleaned = cleanLabel(raw);
+    const candidates = [];
+    for (let i = 0; i < cleaned.length; i += 1) {
+      const boundary = i === 0 || cleaned[i - 1] === ' ' || cleaned[i - 1] === ',';
+      if (!boundary) continue;
+      const tail = cleanLabel(cleaned.slice(i));
+      if (HTML_NAME.test(tail)) candidates.push(tail);
+    }
+    return candidates;
+  }
+
+  // Drive leaves the previous preview's dialog in the DOM as aria-hidden.
+  // Taking the first [role="dialog"] would target a file the user closed.
+  function visibleDialog(doc) {
+    const dialogs = doc.querySelectorAll('[role="dialog"]');
+    for (const dialog of dialogs) {
+      if (dialog.getAttribute('aria-hidden') !== 'true') return dialog;
+    }
+    return null;
+  }
+
+  // Two independent DOM paths must agree on the same file: the name shown in
+  // the visible dialog, and the aria-label of the single selected row that
+  // carries the id. Anything ambiguous returns null, which leaves Drive alone.
+  function readOverlayTarget(doc) {
+    const dialog = visibleDialog(doc);
+    if (!dialog) return null; // the common case: bail out before touching the big DOM
+
+    const labels = [dialog.getAttribute('aria-label')];
+    for (const el of dialog.querySelectorAll('[aria-label]')) labels.push(el.getAttribute('aria-label'));
+    if (!labels.some((label) => nameCandidates(label).length > 0)) return null;
+
+    const selected = doc.querySelectorAll('[aria-selected="true"][data-id]');
+    if (selected.length !== 1) return null;
+
+    const row = selected[0];
+    const fileId = row.getAttribute('data-id');
+    if (!DRIVE_FILE_ID.test(fileId || '')) return null;
+
+    const rowLabel = cleanLabel(row.getAttribute('aria-label'));
+    for (const label of labels) {
+      for (const name of nameCandidates(label)) {
+        if (rowLabel.includes(name)) return { fileId, name };
+      }
+    }
+    return null;
+  }
+
+  // Content scripts run in an isolated world, so this global is invisible to
+  // Drive's own page. It exists so the reader above can be unit-tested.
+  globalThis.__driveHtmlPreviewReadOverlayTarget = readOverlayTarget;
+
+  // The url never changes while an overlay opens and closes, so the per-url
+  // time budget cannot govern this path. Each id is attempted at most once per
+  // page instead, with the set capped so a long session cannot grow it forever.
+  const attempted = new Set();
+
+  function alreadyAttempted(fileId) {
+    if (attempted.has(fileId)) return true;
+    if (attempted.size >= MAX_ATTEMPTED) attempted.delete(attempted.values().next().value);
+    attempted.add(fileId);
+    return false;
+  }
+
+  async function reportOverlay() {
+    if (redirected) return;
+
+    const target = readOverlayTarget(document);
+    if (!target) return;
+    if (alreadyAttempted(target.fileId)) return;
+
+    const href = location.href;
+    let response;
+    try {
+      response = await chrome.runtime.sendMessage({
+        type: 'PREVIEW_REQUEST',
+        href,
+        title: document.title,
+        fileId: target.fileId,
+        expectedName: target.name
+      });
+    } catch {
+      // The service worker was unreachable. This id is already marked as
+      // attempted, so nothing retries it; Drive's own page keeps working.
+      return;
+    }
+
+    if (redirected || href !== location.href) return;
+    if (!response?.redirectTo) return;
+
+    redirected = true;
+    location.replace(response.redirectTo);
+  }
+
+  function watchOverlay() {
+    let timer = null;
+
+    // Drive's folder page is large — 95 [data-id] elements were observed — and
+    // these attributes change constantly, so the work is debounced and
+    // readOverlayTarget exits on its first selector when no overlay is open.
+    new MutationObserver(() => {
+      if (timer !== null) return;
+      timer = setTimeout(() => {
+        timer = null;
+        reportOverlay();
+      }, OVERLAY_DEBOUNCE_MS);
+    }).observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['aria-hidden', 'aria-selected', 'aria-label']
+    });
+
+    reportOverlay();
+  }
+
   function watchTitle() {
     const head = document.head;
     if (!head) return;
@@ -75,9 +210,25 @@
 
     // Back/forward within Drive changes the url but may leave the title alone.
     window.addEventListener('popstate', report);
+    window.addEventListener('popstate', reportOverlay);
 
     report();
   }
+
+  // <body> may not exist yet at document_start either.
+  function whenBodyReady() {
+    if (document.body) {
+      watchOverlay();
+      return;
+    }
+    new MutationObserver((_records, observer) => {
+      if (!document.body) return;
+      observer.disconnect();
+      watchOverlay();
+    }).observe(document.documentElement, { childList: true, subtree: true });
+  }
+
+  whenBodyReady();
 
   // <head> does not exist yet at document_start.
   if (document.head) {

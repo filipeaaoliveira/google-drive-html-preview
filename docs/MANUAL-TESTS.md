@@ -23,6 +23,11 @@ Run before every release, in both Chrome and Brave (default shields).
 | 14 | Popup toggle off | No redirect on any HTML file |
 | 15 | Popup toggle back on | Redirect resumes |
 | 16 | A large HTML file (> 1 MB) | Renders without truncation |
+| 17 | Open an HTML file from a folder listing (Drive's overlay, url stays `/drive/…`) | Renders |
+| 18 | Open a PDF from a folder listing | No redirect; Drive's own preview opens |
+| 19 | Open an HTML file from a folder, go back to the folder, open a second HTML file | Both render |
+| 20 | Preview a video, close it, then open an HTML file in the same session | Renders the HTML file — never the video, whose closed dialog stays in the DOM |
+| 21 | Select several files in a folder, then open one | No redirect while the selection is ambiguous |
 
 Record the browser versions tested and the date alongside the results.
 

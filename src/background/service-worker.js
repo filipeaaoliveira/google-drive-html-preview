@@ -1,4 +1,5 @@
-import { shouldConsiderPreview } from '../lib/decide.js';
+import { shouldConsiderPreview, shouldConsiderOverlayPreview } from '../lib/decide.js';
+import { namesMatch } from '../lib/target.js';
 import { fetchDriveFile, DriveFetchError } from '../lib/fetch-drive.js';
 import { createSourceStore } from '../lib/source-store.js';
 import { createSettings } from '../lib/settings.js';
@@ -22,12 +23,14 @@ async function stash(file) {
   return chrome.runtime.getURL(viewerPath(key));
 }
 
-async function handlePreviewRequest({ href, title }) {
-  const decision = shouldConsiderPreview({
-    href,
-    title,
-    enabled: await settings.isEnabled()
-  });
+async function handlePreviewRequest({ href, title, fileId, expectedName }) {
+  const enabled = await settings.isEnabled();
+  // A fileId means the content script found the file in Drive's in-folder
+  // overlay, where the url and title say nothing about it. Without one, this
+  // is the original /file/d/<id>/view path, decided exactly as before.
+  const decision = fileId
+    ? shouldConsiderOverlayPreview({ fileId, name: expectedName, enabled })
+    : shouldConsiderPreview({ href, title, enabled });
   if (!decision.consider) return { redirectTo: null };
 
   try {
@@ -37,6 +40,16 @@ async function handlePreviewRequest({ href, title }) {
     // leaving Drive's own page alone.
     if (file.isSignInPage) return { redirectTo: null };
     if (!file.isHtml) return { redirectTo: null };
+    // The backstop for the overlay's DOM guesswork: what Drive sent back must
+    // be the file the content script said it was. An empty name — no
+    // Content-Disposition — is a mismatch: an identity that cannot be checked
+    // must not be rendered.
+    if (expectedName && !namesMatch(expectedName, file.name)) {
+      console.warn(
+        `Drive HTML Preview: name mismatch, expected "${expectedName}" but Drive sent "${file.name}"`
+      );
+      return { redirectTo: null };
+    }
     return { redirectTo: await stash(file) };
   } catch (error) {
     // A failed fetch must leave Drive's own page working. Never redirect on error.

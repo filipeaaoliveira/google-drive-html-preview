@@ -8,11 +8,26 @@ that brings it back, so the fix has to run in the browser.
 
 ## How it works
 
-A content script on Drive's file-view pages reports the page title to the
-service worker. When the title names an `.html` or `.htm` file, the service
-worker downloads the file using your existing Google session — no OAuth, no
-consent screen, no Drive API scopes — stashes the source under a single-use
-key, and hands back a viewer URL. The viewer embeds a sandboxed frame, and that
+A content script on Drive's pages reports what it sees to the service worker.
+On a `/file/d/<id>/view` url that is the page title; when the title names an
+`.html` or `.htm` file, that is the signal. Drive usually opens a file in an
+overlay on top of the folder instead, leaving both the url and the title
+unchanged, so the content script also watches for that overlay and reads the
+file's identity from the DOM.
+
+Reading identity from a page Drive can rearrange at any time is only safe if
+being wrong is impossible, because rendering the wrong file would be worse than
+rendering nothing. Three independent checks must therefore agree before an
+overlay preview happens: the visible dialog — never a closed, `aria-hidden` one
+left over from an earlier preview — must name an `.html` or `.htm` file; exactly
+one selected row must carry a Drive file id and the same name; and the service
+worker must confirm that the filename Drive returns in `Content-Disposition`
+matches the name that was expected. Any disagreement, any ambiguity, and any
+missing filename means no redirect, which leaves Drive's own behaviour intact.
+
+Once a file is identified, the service worker downloads it using your existing
+Google session — no OAuth, no consent screen, no Drive API scopes — stashes the
+source under a single-use key, and hands back a viewer URL. The viewer embeds a sandboxed frame, and that
 frame is where your HTML actually runs, in an opaque origin with no access to
 extension APIs, extension storage, or your cookies.
 
