@@ -9,4 +9,3 @@ pages instead of showing their source code.
 
 - [Privacy policy](PRIVACY.html)
 - [Source code](https://github.com/filipeaaoliveira/google-drive-html-preview)
-- [Manual test matrix](MANUAL-TESTS.html)

@@ -98,12 +98,9 @@ Node's built-ins alone. `npm run package` shells out to the `zip` command that
 ships with macOS and Linux.
 
 Unit tests cover `src/lib/`: filename classification, URL parsing, the preview
-decision, the storage layer, and the fetch module. `docs/MANUAL-TESTS.md`
-covers the browser-facing pieces.
+decision, the storage layer, and the fetch module. The browser-facing pieces,
+meaning the content script, the service worker, the viewer and the sandbox, have
+no automated coverage and are checked by hand in Chrome and Brave.
 
-## Documentation
-
-- `docs/superpowers/specs/2026-08-28-drive-html-preview-design.md` for the design
-- `docs/MANUAL-TESTS.md` for the release checklist
-- `docs/STORE-LISTING.md` for store submission material
-- `docs/PRIVACY.md` for the privacy policy
+`docs/PRIVACY.md` is the privacy policy, published at
+https://filipeaaoliveira.github.io/google-drive-html-preview/PRIVACY.html
