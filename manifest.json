@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "Drive HTML Preview",
+  "version": "0.1.0",
+  "description": "Renders HTML files stored in Google Drive as web pages instead of showing their source code.",
+  "minimum_chrome_version": "116",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://drive.google.com/*",
+    "https://drive.usercontent.google.com/*"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://drive.google.com/file/d/*"],
+      "js": ["src/content/content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_title": "Drive HTML Preview"
+  },
+  "sandbox": {
+    "pages": ["src/sandbox/sandbox.html"]
+  },
+  "content_security_policy": {
+    "sandbox": "sandbox allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src https:; frame-src 'self' https: data:; child-src 'self' https: data:;"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["src/viewer/viewer.html"],
+      "matches": ["https://drive.google.com/*"],
+      "use_dynamic_url": false
+    }
+  ]
+}
