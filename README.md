@@ -3,35 +3,39 @@
 Google Drive shows HTML files as source code. This Chromium extension renders
 them as web pages instead.
 
-Drive's own web hosting was retired in 2016 and there is no server-side setting
-that brings it back, so the fix has to run in the browser.
+Drive's own web hosting was retired in 2016 and no server-side setting brings it
+back, so the fix has to run in the browser.
 
 ## How it works
 
-A content script on Drive's pages reports what it sees to the service worker.
-On a `/file/d/<id>/view` url that is the page title; when the title names an
-`.html` or `.htm` file, that is the signal. Drive usually opens a file in an
-overlay on top of the folder instead, leaving both the url and the title
+A content script on Drive's pages reports what it sees to the service worker. On
+a `/file/d/<id>/view` url that means the page title: when the title names an
+`.html` or `.htm` file, the extension acts on it. Drive usually opens a file in
+an overlay on top of the folder instead, which leaves the url and the title
 unchanged, so the content script also watches for that overlay and reads the
 file's identity from the DOM.
 
-Reading identity from a page Drive can rearrange at any time is only safe if
-being wrong is impossible, because rendering the wrong file would be worse than
-rendering nothing. Three independent checks must therefore agree before an
-overlay preview happens: the visible dialog — never a closed, `aria-hidden` one
-left over from an earlier preview — must name an `.html` or `.htm` file; exactly
-one selected row must carry a Drive file id and the same name; and the service
-worker must confirm that the filename Drive returns in `Content-Disposition`
-matches the name that was expected. Any disagreement, any ambiguity, and any
-missing filename means no redirect, which leaves Drive's own behaviour intact.
+Google can rearrange that DOM at any time, and rendering the wrong file would be
+worse than rendering nothing. Three independent checks therefore have to agree
+before an overlay preview happens:
 
-Once a file is identified, the service worker downloads it using your existing
-Google session — no OAuth, no consent screen, no Drive API scopes — stashes the
-source under a single-use key, and hands back a viewer URL. The viewer embeds a sandboxed frame, and that
-frame is where your HTML actually runs, in an opaque origin with no access to
-extension APIs, extension storage, or your cookies.
+1. The visible dialog names an `.html` or `.htm` file. A closed `aria-hidden`
+   dialog left over from an earlier preview never counts.
+2. Exactly one selected row carries a Drive file id and the same name.
+3. The service worker confirms that the filename Drive returns in
+   `Content-Disposition` matches the name it expected.
 
-File content is never transmitted anywhere. There is no server component, no
+Disagreement, ambiguity, or a missing filename cancels the redirect and leaves
+Drive's own behaviour intact.
+
+Once the extension has identified a file, the service worker downloads it with
+your existing Google session, stashes the source under a single-use key, and
+hands back a viewer URL. It asks for no OAuth scopes, shows no consent screen,
+and uses no Drive API. The viewer embeds a sandboxed frame, and your HTML runs
+inside that frame in an opaque origin with no access to extension APIs,
+extension storage, or your cookies.
+
+The extension transmits no file content anywhere. It has no server component, no
 analytics, and no telemetry. See `docs/PRIVACY.md`.
 
 ## Permissions
@@ -46,26 +50,28 @@ public CDNs.
 
 ## Known limitations
 
-These are accepted, not bugs waiting to be filed.
+The extension does not handle the cases below, and that is deliberate.
 
-- **Multi-file sites are out of scope.** HTML that references sibling Drive
-  files for CSS, JavaScript, or images will not resolve them.
-- **Mislabelled encodings render as mojibake.** The downloaded bytes are
-  decoded using the `charset` in Drive's `Content-Type` response header, and as
-  UTF-8 when that header names none. A correctly labelled Latin-1 or Shift-JIS
-  file therefore renders fine; one served without a charset, or with the wrong
-  one, does not.
-- **Some Drive interstitials are not detected.** A page served from a Drive
-  host with HTTP 200 and no `Content-Disposition` header — the virus-scan
-  confirmation shown for files over 100 MB, for instance — is indistinguishable
-  from the user's own document and may be rendered as one. A signed-out user
-  *is* detected, because that case redirects off the Drive hosts, and gets a
-  clear message instead.
-- **Stashed sources are not expired.** If a preview is never opened — you close
-  the tab before the viewer loads — that file's source stays in
-  `chrome.storage.session` until the browser session ends.
-- **A bare file URL is not recognised.** `https://drive.google.com/file/d/<id>`
-  with no trailing path segment (`/view`, `/edit`) is not matched.
+Multi-file sites are out of scope. HTML that references sibling Drive files for
+CSS, JavaScript, or images will not resolve them.
+
+Mislabelled encodings render as mojibake. The downloaded bytes are decoded using
+the `charset` in Drive's `Content-Type` response header, and as UTF-8 when that
+header names none. A correctly labelled Latin-1 or Shift-JIS file therefore
+renders fine. One served without a charset, or with the wrong one, does not.
+
+Some Drive interstitials go undetected. A page served from a Drive host with
+HTTP 200 and no `Content-Disposition` header, such as the virus-scan
+confirmation shown for files over 100 MB, is indistinguishable from your own
+document and may be rendered as one. A signed-out user *is* detected, because
+that case redirects off the Drive hosts, and gets a clear message instead.
+
+Stashed sources are not expired. If you close the tab before the viewer loads,
+that file's source stays in `chrome.storage.session` until the browser session
+ends.
+
+A bare file URL is not recognised. `https://drive.google.com/file/d/<id>` with
+no trailing path segment (`/view`, `/edit`) does not match.
 
 ## Install
 
@@ -75,11 +81,11 @@ To run from source: clone the repository, open `chrome://extensions`, enable
 Developer mode, choose "Load unpacked", and select the repository root. There
 is no build step.
 
-Loading the repository root unpacked exposes the *whole* folder to the browser
-— tests, docs, tooling, and the `spike/` directory with its second
-`manifest.json`. That is fine for development and wrong for distribution. What
-gets submitted to the Chrome Web Store is the zip produced by
-`npm run package`, which contains only `manifest.json`, `icons/`, and `src/`.
+Loading the repository root unpacked exposes the whole folder to the browser,
+including tests, docs, tooling, and the `spike/` directory with its second
+`manifest.json`. That works for development and breaks distribution. What gets
+submitted to the Chrome Web Store is the zip produced by `npm run package`,
+which contains only `manifest.json`, `icons/`, and `src/`.
 
 ## Development
 
@@ -88,16 +94,16 @@ gets submitted to the Chrome Web Store is the zip produced by
     node tools/make-icons.js   # regenerate icons
 
 The project has no dependencies. `npm test` and the icon generator run on
-Node's built-ins alone; `npm run package` shells out to the `zip` command that
+Node's built-ins alone. `npm run package` shells out to the `zip` command that
 ships with macOS and Linux.
 
-Unit tests cover `src/lib/` — filename classification, URL parsing, the
-preview decision, the storage layer, and the fetch module. The browser-facing
-pieces are covered by `docs/MANUAL-TESTS.md`.
+Unit tests cover `src/lib/`: filename classification, URL parsing, the preview
+decision, the storage layer, and the fetch module. `docs/MANUAL-TESTS.md`
+covers the browser-facing pieces.
 
 ## Documentation
 
-- `docs/superpowers/specs/2026-08-28-drive-html-preview-design.md` — design
-- `docs/MANUAL-TESTS.md` — release checklist
-- `docs/STORE-LISTING.md` — store submission material
-- `docs/PRIVACY.md` — privacy policy
+- `docs/superpowers/specs/2026-08-28-drive-html-preview-design.md` for the design
+- `docs/MANUAL-TESTS.md` for the release checklist
+- `docs/STORE-LISTING.md` for store submission material
+- `docs/PRIVACY.md` for the privacy policy
