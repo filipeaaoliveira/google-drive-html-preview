@@ -74,8 +74,8 @@ code is worse than no test, because it reads like coverage.
 ## What has no automated coverage
 
 The viewer page, the popup, and the content script's observer wiring are not
-unit tested. Everything else is, including the service worker, which is driven
-through a stubbed `chrome` namespace rather than left to manual checking.
+unit tested. Everything else is, including the service worker: its tests drive it
+through a stubbed `chrome` namespace rather than leaving it to manual checking.
 
 When you add a test, mutate the code it covers and confirm that test goes red.
 The service worker's tests once passed with three security checks deleted,

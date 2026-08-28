@@ -16,7 +16,7 @@ HTML away from the extension's own privileges, so anything that crosses that
 line is a security issue rather than a bug:
 
 - a viewed document reaching `chrome.*` APIs, extension storage, the user's
-  cookies, or any Drive file other than the one that was opened
+  cookies, or any Drive file other than the one you opened
 - the extension rendering a file other than the one the user opened, since it
   identifies files by reading a DOM that Google controls
 - the viewer navigating somewhere the user did not ask for
@@ -26,8 +26,8 @@ line is a security issue rather than a bug:
 
 A viewed document can load scripts, styles, images and fonts over `https:` and
 open its own network connections, because a page that cannot do that is not
-being displayed as a page. The extension does not block this, `docs/PRIVACY.md`
-states it plainly, and it is not a vulnerability. The document runs in a
+being displayed as a page. The extension does not block this, the privacy policy says so, and it is not a
+vulnerability. The document runs in a
 sandboxed frame in an opaque origin, so it can talk to its own author's servers
 and to nothing belonging to you or to the extension.
 

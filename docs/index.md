@@ -67,7 +67,7 @@ title: Drive HTML Preview
 </section>
 
 <section class="band">
-  <h2>Questions worth asking before you install something that reads your files</h2>
+  <h2>Before you install something that reads your files</h2>
 
   <div class="faq">
     <details>
@@ -92,10 +92,10 @@ title: Drive HTML Preview
       <summary>Can it render the wrong file?</summary>
       <div class="faq__answer"><div>
         <p>
-          That is the failure it is built hardest against, because showing you someone
-          else's document would be worse than showing you nothing. The third check is
+          Showing you someone else's document would be worse than showing you nothing, so
+          that is the case the checks are built around. The third check is
           the backstop: the file's real name, taken from the HTTP response rather than
-          the page, has to match. A file whose identity cannot be verified is refused.
+          the page, has to match. The extension refuses a file whose identity it cannot verify.
         </p>
       </div></div>
     </details>
@@ -105,13 +105,13 @@ title: Drive HTML Preview
       <div class="faq__answer"><div>
         <p>
           Multi-file sites are out of scope. HTML that references sibling Drive files
-          for CSS, JavaScript or images will not resolve them. Files are expected to be
-          self-contained, with everything inline or loaded from public CDNs.
+          for CSS, JavaScript or images will not resolve them. The extension expects a
+          self-contained file, with everything inline or loaded from public CDNs.
         </p>
         <p>
           A file served without a character set, or with the wrong one, may render as
           mojibake. A bare <code>/file/d/&lt;id&gt;</code> URL with no trailing segment is not
-          recognised. The full list is in the README, kept honest rather than short.
+          recognised. The README has the full list.
         </p>
       </div></div>
     </details>
