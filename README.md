@@ -13,7 +13,7 @@ the fix has to run in the browser.
 
 A content script on Drive's pages reports what it sees to the service worker. On
 a `/file/d/<id>/view` url that means the page title: when the title names an
-`.html` or `.htm` file, the extension acts on it. Drive usually opens a file in
+`.html` or `.htm` file, the extension acts on it. Drive opens most files in
 an overlay on top of the folder instead, which leaves the url and the title
 unchanged, so the content script also watches for that overlay and reads the
 file's identity from the DOM.
@@ -60,8 +60,8 @@ CSS, JavaScript, or images will not resolve them.
 
 Mislabelled encodings render as mojibake. The browser decodes the bytes using the
 `charset` in Drive's `Content-Type` response header, and as UTF-8 when that header
-names none. A correctly labelled Latin-1 or Shift-JIS file therefore
-renders fine. One served without a charset, or with the wrong one, does not.
+names none. A Latin-1 or Shift-JIS file whose charset label is right
+therefore renders fine. One served without a charset, or with the wrong one, does not.
 
 Some Drive interstitials go undetected. A page served from a Drive host with
 HTTP 200 and no `Content-Disposition` header, such as the virus-scan
@@ -118,7 +118,7 @@ zip picks up anything outside `manifest.json`, `icons/` and `src/`.
 security model, and what you have to check by hand because nothing automated
 covers it. `CHANGELOG.md` records what changed between releases.
 
-Report security issues privately through
+Report security issues through
 [GitHub's advisory form](https://github.com/filipeaaoliveira/google-drive-html-preview/security/advisories/new)
 rather than as a public issue. `SECURITY.md` explains what counts as a
 vulnerability in an extension whose job is rendering untrusted HTML.

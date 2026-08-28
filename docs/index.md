@@ -48,7 +48,7 @@ title: Drive HTML Preview
   <h2>What it asks for</h2>
   <p>
     No OAuth, no consent screen, no Drive API scopes. The extension reads the file
-    with the Google session already in your browser, and renders it locally.
+    with the Google session already in your browser, and renders it on your own machine.
   </p>
 
   <dl class="spec">
@@ -74,16 +74,16 @@ title: Drive HTML Preview
       <summary>How does it know which file I opened?</summary>
       <div class="faq__answer"><div>
         <p>
-          Drive usually opens a file in an overlay on top of the folder, which leaves
+          Drive opens most files in an overlay on top of the folder, which leaves
           both the URL and the page title unchanged. So the file has to be identified
           from Google's own markup, and that markup can be rearranged without notice.
         </p>
         <p>
           Three separate checks have to agree before anything renders: the visible
-          dialog has to name an HTML file, exactly one selected row has to carry both
-          a Drive file id and that same name, and the filename Drive returns in the
+          dialog has to name an HTML file, one selected row and no others has to carry
+          both a Drive file id and that same name, and the filename Drive returns in the
           download response has to match what the page claimed. Any disagreement and
-          the extension does nothing, which leaves Drive exactly as it was.
+          the extension does nothing, which leaves Drive as it was.
         </p>
       </div></div>
     </details>
@@ -122,7 +122,7 @@ title: Drive HTML Preview
         <p>
           Yes, and the privacy policy says so rather than burying it. The extension
           transmits nothing. A document you open can reference scripts, fonts or images
-          from third-party servers and make its own requests, exactly as it could in any
+          from third-party servers and make its own requests, as it could in any
           browser tab, and the extension does not block that.
         </p>
         <p>

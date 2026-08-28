@@ -40,7 +40,7 @@ you are viewing.
 
 An HTML file can reference scripts, images, stylesheets, or fonts from
 third-party servers, and it can send network requests of its own, such as an
-analytics beacon. It can do that in this extension's viewer exactly as it could
+analytics beacon. It can do that in this extension's viewer as it could
 in any ordinary browser tab, and the extension does not block it. The viewer's
 content security policy permits the rendered document to load resources over
 `https:` and to open connections over `https:`.

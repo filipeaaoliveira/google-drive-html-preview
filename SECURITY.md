@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-Report security issues privately through GitHub's
+Report security issues through GitHub's
 [security advisory form](https://github.com/filipeaaoliveira/google-drive-html-preview/security/advisories/new).
 Please do not open a public issue for anything exploitable.
 

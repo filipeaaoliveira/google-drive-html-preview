@@ -42,12 +42,12 @@ Four browser surfaces consume those functions:
   no decisions of its own.
 - `src/background/service-worker.js` makes every decision and does every fetch
 - `src/viewer/` is the trusted page with the toolbar
-- `src/sandbox/` is where the user's HTML actually runs
+- `src/sandbox/` is where the user's HTML runs
 
 ## Two rules that carry the security model
 
 The user's HTML is untrusted code. Two mechanisms keep it away from the
-extension, and both are load-bearing:
+extension, and neither is optional:
 
 The viewer's iframe must never gain `allow-same-origin`. Combined with
 `allow-scripts`, that would drop the opaque origin and let a viewed document
@@ -55,8 +55,8 @@ reach extension storage and `chrome.*` APIs.
 
 The sandbox page must keep rendering through `document.write`. Switching to
 `srcdoc` or `innerHTML` reintroduces the extension-page content security policy,
-which the sandbox exists to escape, and would silently break every inline and
-CDN script in a viewed file.
+which the sandbox exists to escape, and would break every inline and
+CDN script in a viewed file, with no error to show for it.
 
 `test/harness.test.js` pins both, along with the manifest's sandbox policy. If
 you change one of them on purpose, change the test in the same commit and say
@@ -67,8 +67,8 @@ why in the message.
 Add tests for anything in `src/lib/`. The suite is fast and has no fixtures to
 set up.
 
-Then check that a new test can actually fail. Break the code it covers, run
-`npm test`, and confirm that test goes red. A test that passes against broken
+Then prove the new test can fail. Break the code it covers, run `npm test`, and
+confirm that test goes red. A test that passes against broken
 code is worse than no test, because it reads like coverage.
 
 ## What has no automated coverage
@@ -101,7 +101,7 @@ session cookie is the extension's only means of authentication.
 ## Debugging Drive's DOM
 
 Drive is a single-page application whose markup Google changes without notice.
-When the overlay stops triggering, read what the page actually exposes before
+When the overlay stops triggering, read what the page exposes before
 changing any code:
 
 ```js
