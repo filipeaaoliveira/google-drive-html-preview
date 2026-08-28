@@ -81,10 +81,9 @@ To run from source: clone the repository, open `chrome://extensions`, enable
 Developer mode, choose "Load unpacked", and select the repository root. There
 is no build step.
 
-Loading the repository root unpacked exposes the whole folder to the browser,
-including tests, docs, tooling, and the `spike/` directory with its second
-`manifest.json`. That works for development and breaks distribution. What gets
-submitted to the Chrome Web Store is the zip produced by `npm run package`,
+Loading the repository root unpacked also exposes the tests, the docs and the
+tooling to the browser. That works for development and breaks distribution. What
+gets submitted to the Chrome Web Store is the zip produced by `npm run package`,
 which contains only `manifest.json`, `icons/`, and `src/`.
 
 ## Development
