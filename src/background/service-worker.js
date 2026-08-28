@@ -68,6 +68,23 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   if (!handler) return false;
 
-  handler(message).then(sendResponse);
+  // Anything that rejects before the handler's own try block — reading the
+  // enabled flag out of chrome.storage.local, say — would otherwise leave
+  // sendResponse uncalled and the caller's port hanging open.
+  const fallback =
+    message.type === 'PREVIEW_REQUEST'
+      ? { redirectTo: null } // never redirect on error: Drive's own page must keep working
+      : { error: 'Could not reload the file.' };
+
+  handler(message)
+    .then(sendResponse)
+    .catch((error) => {
+      try {
+        console.warn('Drive HTML Preview: handler failed', error);
+        sendResponse(fallback);
+      } catch {
+        // The port is already closed, so there is nobody left to answer.
+      }
+    });
   return true; // keep the message channel open for the async response
 });

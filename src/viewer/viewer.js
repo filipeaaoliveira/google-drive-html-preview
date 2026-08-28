@@ -30,6 +30,12 @@ const payload = key ? await store.take(key) : null;
 
 if (!payload) {
   // Keys are single-use, so this is the expected state on a page reload.
+  // There is no file id on this path, so the escape hatch goes to Drive's
+  // root rather than back to a specific file — start() never runs here, and
+  // an enabled button with no listener would be a dead end.
+  elements.back.addEventListener('click', () => {
+    location.replace('https://drive.google.com/');
+  });
   fail('This preview has already been opened. Reopen the file from Google Drive.');
 } else {
   start(payload);
