@@ -11,7 +11,6 @@
 (() => {
   const GIVE_UP_AFTER_MS = 10000;
   const OVERLAY_DEBOUNCE_MS = 200;
-  const MAX_ATTEMPTED = 50;
   const DRIVE_FILE_ID = /^[A-Za-z0-9_-]{10,}$/;
   const HTML_NAME = /.\.html?$/i;
 
@@ -164,24 +163,17 @@
   // Drive's own page. It exists so the reader above can be unit-tested.
   globalThis.__driveHtmlPreviewReadOverlayTarget = readOverlayTarget;
 
-  // The url never changes while an overlay opens and closes, so the per-url
-  // time budget cannot govern this path. Each id is attempted at most once per
-  // page instead, with the set capped so a long session cannot grow it forever.
-  const attempted = new Set();
-
-  function alreadyAttempted(fileId) {
-    if (attempted.has(fileId)) return true;
-    if (attempted.size >= MAX_ATTEMPTED) attempted.delete(attempted.values().next().value);
-    attempted.add(fileId);
-    return false;
-  }
-
+  // Whether a file is worth attempting again is a decision, so it lives in the
+  // service worker with the rest of them, in src/lib/attempt-log.js. Keeping it
+  // there is what makes it testable: an earlier version tracked attempts here
+  // and marked a file as tried before knowing the answer, which left a file
+  // unopenable for the life of the page after any transient decline, such as
+  // the popup toggle being off.
   async function reportOverlay() {
     if (redirected) return;
 
     const target = readOverlayTarget(document);
     if (!target) return;
-    if (alreadyAttempted(target.fileId)) return;
 
     const href = location.href;
     let response;

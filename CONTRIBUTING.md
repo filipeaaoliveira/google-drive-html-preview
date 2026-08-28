@@ -30,7 +30,9 @@ and it is the rule most worth preserving:
 - `target.js` normalises and compares the names read out of Drive's DOM
 - `source-store.js` hands a file's source to the viewer under a single-use key
 - `settings.js` reads and writes the on/off toggle
-- `redirect-guard.js` stops the same file redirecting twice in quick succession
+- `attempt-log.js` remembers what has been tried, so a file is neither
+  redirected twice in a moment nor downloaded again after a decision that
+  cannot change
 - `messages.js` builds the viewer URL
 
 Four browser surfaces consume those functions:
@@ -71,9 +73,17 @@ code is worse than no test, because it reads like coverage.
 
 ## What has no automated coverage
 
-The browser surfaces are not unit tested, because mocking the whole `chrome`
-namespace would test the mock. Check these by hand in Chrome and in Brave with
-default shields before opening a pull request that touches them:
+The viewer page, the popup, and the content script's observer wiring are not
+unit tested. Everything else is, including the service worker, which is driven
+through a stubbed `chrome` namespace rather than left to manual checking.
+
+When you add a test, mutate the code it covers and confirm that test goes red.
+The service worker's tests once passed with three security checks deleted,
+because every case reused one file id and an earlier guard declined them all for
+an unrelated reason. Give each case its own identifier.
+
+Check these by hand in Chrome and in Brave with default shields before opening a
+pull request that touches them:
 
 - open an HTML file from a folder listing, where Drive uses an overlay and the
   URL never changes

@@ -19,8 +19,8 @@ function fakeResponse({
 
 test('downloadUrl targets the usercontent endpoint and encodes the id', () => {
   assert.equal(
-    downloadUrl('1AbC-_dEf'),
-    'https://drive.usercontent.google.com/download?id=1AbC-_dEf&export=download'
+    downloadUrl('1AbCdEf_gH-ijkLMNopQRstUVwxyz0123dEf_gH-ijkLMNopQRstUVwxyz0123'),
+    'https://drive.usercontent.google.com/download?id=1AbCdEf_gH-ijkLMNopQRstUVwxyz0123dEf_gH-ijkLMNopQRstUVwxyz0123&export=download'
   );
 });
 
@@ -33,9 +33,9 @@ test('fetchDriveFile sends credentials', async () => {
       body: '<h1>ok</h1>'
     });
   };
-  await fetchDriveFile('1AbC', fetchImpl);
+  await fetchDriveFile('1AbCdEf_gH-ijkLMNopQRstUVwxyz0123', fetchImpl);
   assert.equal(seen.options.credentials, 'include');
-  assert.equal(seen.url, downloadUrl('1AbC'));
+  assert.equal(seen.url, downloadUrl('1AbCdEf_gH-ijkLMNopQRstUVwxyz0123'));
 });
 
 test('fetchDriveFile returns the name, source, and an isHtml verdict', async () => {
@@ -47,9 +47,9 @@ test('fetchDriveFile returns the name, source, and an isHtml verdict', async () 
       },
       body: '<h1>report</h1>'
     });
-  const result = await fetchDriveFile('1AbC', fetchImpl);
+  const result = await fetchDriveFile('1AbCdEf_gH-ijkLMNopQRstUVwxyz0123', fetchImpl);
   assert.deepEqual(result, {
-    fileId: '1AbC',
+    fileId: '1AbCdEf_gH-ijkLMNopQRstUVwxyz0123',
     name: 'report.html',
     contentType: 'text/html',
     source: '<h1>report</h1>',
@@ -61,7 +61,7 @@ test('fetchDriveFile returns the name, source, and an isHtml verdict', async () 
 test('fetchDriveFile falls back to Content-Type when the filename is absent', async () => {
   const fetchImpl = async () =>
     fakeResponse({ headers: { 'content-type': 'text/html; charset=utf-8' }, body: '<p>x</p>' });
-  const result = await fetchDriveFile('1AbC', fetchImpl);
+  const result = await fetchDriveFile('1AbCdEf_gH-ijkLMNopQRstUVwxyz0123', fetchImpl);
   assert.equal(result.name, '');
   assert.equal(result.isHtml, true);
 });
@@ -75,13 +75,13 @@ test('fetchDriveFile reports non-HTML files as such', async () => {
       },
       body: '%PDF-1.4'
     });
-  assert.equal((await fetchDriveFile('1AbC', fetchImpl)).isHtml, false);
+  assert.equal((await fetchDriveFile('1AbCdEf_gH-ijkLMNopQRstUVwxyz0123', fetchImpl)).isHtml, false);
 });
 
 test('fetchDriveFile throws DriveFetchError carrying the status', async () => {
   const fetchImpl = async () => fakeResponse({ status: 403, body: 'denied' });
   await assert.rejects(
-    () => fetchDriveFile('1AbC', fetchImpl),
+    () => fetchDriveFile('1AbCdEf_gH-ijkLMNopQRstUVwxyz0123', fetchImpl),
     (error) => error instanceof DriveFetchError && error.status === 403
   );
 });
@@ -105,7 +105,7 @@ test('fetchDriveFile trusts the filename over a disagreeing Content-Type', async
       },
       body: '<h1>report</h1>'
     });
-  assert.equal((await fetchDriveFile('1AbC', fetchImpl)).isHtml, true);
+  assert.equal((await fetchDriveFile('1AbCdEf_gH-ijkLMNopQRstUVwxyz0123', fetchImpl)).isHtml, true);
 });
 
 test('fetchDriveFile flags a redirect to the sign-in page', async () => {
@@ -115,7 +115,7 @@ test('fetchDriveFile flags a redirect to the sign-in page', async () => {
       body: '<form action="/signin">',
       url: 'https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fdrive.google.com%2F'
     });
-  const result = await fetchDriveFile('1AbC', fetchImpl);
+  const result = await fetchDriveFile('1AbCdEf_gH-ijkLMNopQRstUVwxyz0123', fetchImpl);
   assert.equal(result.isSignInPage, true);
   assert.equal(result.isHtml, false);
 });
@@ -128,9 +128,9 @@ test('fetchDriveFile does not flag a response served from the download host', as
         'content-type': 'text/html'
       },
       body: '<h1>report</h1>',
-      url: 'https://drive.usercontent.google.com/download?id=1AbC&export=download'
+      url: 'https://drive.usercontent.google.com/download?id=1AbCdEf_gH-ijkLMNopQRstUVwxyz0123&export=download'
     });
-  const result = await fetchDriveFile('1AbC', fetchImpl);
+  const result = await fetchDriveFile('1AbCdEf_gH-ijkLMNopQRstUVwxyz0123', fetchImpl);
   assert.equal(result.isSignInPage, false);
   assert.equal(result.isHtml, true);
 });
@@ -142,7 +142,7 @@ test('fetchDriveFile treats a missing or unparseable url as not a sign-in page',
       body: '<p>x</p>',
       url: null
     });
-  assert.equal((await fetchDriveFile('1AbC', missing)).isSignInPage, false);
+  assert.equal((await fetchDriveFile('1AbCdEf_gH-ijkLMNopQRstUVwxyz0123', missing)).isSignInPage, false);
 
   const unparseable = async () =>
     fakeResponse({
@@ -150,7 +150,7 @@ test('fetchDriveFile treats a missing or unparseable url as not a sign-in page',
       body: '<p>x</p>',
       url: 'not a url'
     });
-  const result = await fetchDriveFile('1AbC', unparseable);
+  const result = await fetchDriveFile('1AbCdEf_gH-ijkLMNopQRstUVwxyz0123', unparseable);
   assert.equal(result.isSignInPage, false);
   assert.equal(result.isHtml, true);
 });

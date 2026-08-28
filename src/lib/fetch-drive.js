@@ -1,8 +1,7 @@
 import { filenameFromContentDisposition, isHtmlFilename } from './filename.js';
+import { isDriveFileId } from './target.js';
 
 export const DOWNLOAD_ENDPOINT = 'https://drive.usercontent.google.com/download';
-
-const FILE_ID = /^[A-Za-z0-9_-]+$/;
 
 const DOWNLOAD_HOSTS = new Set(['drive.usercontent.google.com', 'drive.google.com']);
 
@@ -39,7 +38,7 @@ export function downloadUrl(fileId) {
  * are what carry the user's cookies.
  */
 export async function fetchDriveFile(fileId, fetchImpl = fetch) {
-  if (typeof fileId !== 'string' || !FILE_ID.test(fileId)) {
+  if (!isDriveFileId(fileId)) {
     throw new Error(`invalid drive file id: ${fileId}`);
   }
 

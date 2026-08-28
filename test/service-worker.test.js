@@ -66,45 +66,79 @@ function send(message) {
 
 const ID = '1gV6mm4-zZd7BklAt-W95qVGkcU2fyMTS';
 
-const OVERLAY = {
-  type: 'PREVIEW_REQUEST',
-  href: 'https://drive.google.com/drive/home',
-  title: 'Home - Google Drive',
-  fileId: ID,
-  expectedName: 'report.html'
-};
+// Every case needs its own file id. The attempt log runs before the fetch, so a
+// case reusing a previous case's id is declined by the log rather than by the
+// check it means to exercise, and would pass with that check deleted.
+let idCounter = 0;
+function freshId() {
+  return `9aa${String(idCounter++).padStart(2, '0')}bbCCddEEffGGhhIIjjKKllMM`;
+}
+
+function overlay(extra = {}) {
+  return {
+    type: 'PREVIEW_REQUEST',
+    href: 'https://drive.google.com/drive/home',
+    title: 'Home - Google Drive',
+    fileId: freshId(),
+    expectedName: 'report.html',
+    ...extra
+  };
+}
 
 test('an overlay request redirects when the fetched filename matches', async () => {
   nextResponse = reply({ name: 'report.html' });
-  const response = await send(OVERLAY);
+  const response = await send(overlay());
   assert.match(response.redirectTo, /^chrome-extension:\/\/test\/src\/viewer\/viewer\.html\?k=/);
 });
 
 test('an overlay request declines when the fetched filename is a different file', async () => {
   nextResponse = reply({ name: 'other.html' });
-  assert.deepEqual(await send(OVERLAY), { redirectTo: null });
+  assert.deepEqual(await send(overlay()), { redirectTo: null });
 });
 
 test('an overlay request declines when the response carries no filename', async () => {
   nextResponse = reply({ name: null });
-  assert.deepEqual(await send(OVERLAY), { redirectTo: null });
+  assert.deepEqual(await send(overlay()), { redirectTo: null });
 });
 
 test('an overlay request declines when Drive answers with a different, non-HTML file', async () => {
   nextResponse = reply({ name: 'clip.mov', contentType: 'video/quicktime' });
-  assert.deepEqual(await send(OVERLAY), { redirectTo: null });
+  assert.deepEqual(await send(overlay()), { redirectTo: null });
 });
 
 test('an overlay request declines a sign-in page even when the name matches', async () => {
   nextResponse = reply({ name: 'report.html', url: 'https://accounts.google.com/signin' });
-  assert.deepEqual(await send(OVERLAY), { redirectTo: null });
+  assert.deepEqual(await send(overlay()), { redirectTo: null });
 });
 
 test('an overlay request declines a file id that is not a Drive id, without fetching', async () => {
   nextResponse = reply({ name: 'report.html' });
   const before = fetched.length;
-  assert.deepEqual(await send({ ...OVERLAY, fileId: '../x' }), { redirectTo: null });
+  assert.deepEqual(await send(overlay({ fileId: '../x' })), { redirectTo: null });
   assert.equal(fetched.length, before, 'a bad id must never reach the network');
+});
+
+// The url-and-title path carries no expectedName, so the identity check cannot
+// stand in for the content-type check here. This is the only case that isolates
+// the isHtml guard in the service worker.
+test('a url-and-title request declines when the fetched file is not HTML', async () => {
+  nextResponse = reply({ name: 'notes.pdf', contentType: 'application/pdf' });
+  const response = await send({
+    type: 'PREVIEW_REQUEST',
+    href: `https://drive.google.com/file/d/${freshId()}/view`,
+    title: 'notes.html - Google Drive'
+  });
+  assert.deepEqual(response, { redirectTo: null });
+});
+
+test('a url-and-title request declines a sign-in page', async () => {
+  nextResponse = reply({ name: 'page.html', url: 'https://accounts.google.com/signin' });
+  const response = await send({
+    type: 'PREVIEW_REQUEST',
+    href: `https://drive.google.com/file/d/${freshId()}/view`,
+    title: 'page.html - Google Drive'
+  });
+  assert.deepEqual(response, { redirectTo: null });
 });
 
 test('a request without a file id still takes the url-and-title path', async () => {
@@ -126,22 +160,14 @@ const FOLDER = 'https://drive.google.com/drive/folders/0ABCdefGHIjklMNO';
 
 test('an overlay request stashes the folder the user came from', async () => {
   nextResponse = reply({ name: 'report.html' });
-  const response = await send({
-    ...OVERLAY,
-    fileId: '2xYqq9-aaBBccDDeeFFggHHiiJJkkLLmm',
-    href: FOLDER
-  });
+  const response = await send(overlay({ href: FOLDER }));
   assert.ok(response.redirectTo);
   assert.equal(lastStashed().returnTo, FOLDER);
 });
 
 test('an overlay request stashes null when the reported href is not a Drive url', async () => {
   nextResponse = reply({ name: 'report.html' });
-  const response = await send({
-    ...OVERLAY,
-    fileId: '3zQww8-aaBBccDDeeFFggHHiiJJkkLLmm',
-    href: 'https://evil.example/drive/home'
-  });
+  const response = await send(overlay({ href: 'https://evil.example/drive/home' }));
   assert.ok(response.redirectTo);
   assert.equal(lastStashed().returnTo, null);
 });
@@ -157,9 +183,59 @@ test('a url-and-title request stashes no return url', async () => {
   assert.equal(lastStashed().returnTo, null);
 });
 
+test('a durable decline is remembered, so the same file is not fetched again', async () => {
+  const fileId = freshId();
+  nextResponse = reply({ name: 'other.html' });
+  assert.deepEqual(await send(overlay({ fileId })), { redirectTo: null });
+
+  const before = fetched.length;
+  nextResponse = reply({ name: 'report.html' });
+  assert.deepEqual(await send(overlay({ fileId })), { redirectTo: null });
+  assert.equal(fetched.length, before, 'a remembered decline must not download the file again');
+});
+
+test('a non-HTML file is remembered too, so it is not fetched again', async () => {
+  const fileId = freshId();
+  // The url-and-title path has no expectedName, so this exercises the isHtml
+  // decline rather than the identity one.
+  const request = {
+    type: 'PREVIEW_REQUEST',
+    href: 'https://drive.google.com/drive/home',
+    title: 'Home - Google Drive',
+    fileId,
+    expectedName: 'notes.html'
+  };
+  nextResponse = reply({ name: 'notes.html', contentType: 'text/html', body: 'x' });
+
+  // First make it decline for a non-HTML reason: Drive returns a PDF whose name
+  // still matches, so isHtml is what refuses it.
+  nextResponse = reply({ name: 'notes.pdf', contentType: 'application/pdf' });
+  assert.deepEqual(await send(request), { redirectTo: null });
+
+  const before = fetched.length;
+  nextResponse = reply({ name: 'notes.html' });
+  assert.deepEqual(await send(request), { redirectTo: null });
+  assert.equal(fetched.length, before, 'a remembered non-HTML file must not be downloaded again');
+});
+
+// The regression that motivated moving this out of the content script: an
+// earlier version marked a file as tried before knowing the answer, so a file
+// opened while the extension was switched off stayed unopenable for the life of
+// the page even after the user switched it back on.
+test('a transient decline is not remembered, so the file works once re-enabled', async () => {
+  const fileId = freshId();
+  local.set('enabled', false);
+  nextResponse = reply({ name: 'report.html' });
+  assert.deepEqual(await send(overlay({ fileId })), { redirectTo: null });
+
+  local.set('enabled', true);
+  const response = await send(overlay({ fileId }));
+  assert.ok(response.redirectTo, 'the same file must be previewable once re-enabled');
+});
+
 test('a repeat overlay redirect for the same file is refused within the guard window', async () => {
   const fileId = '5vOuu6-aaBBccDDeeFFggHHiiJJkkLLmm';
   nextResponse = reply({ name: 'report.html' });
-  assert.ok((await send({ ...OVERLAY, fileId, href: FOLDER })).redirectTo);
-  assert.deepEqual(await send({ ...OVERLAY, fileId, href: FOLDER }), { redirectTo: null });
+  assert.ok((await send(overlay({ fileId, href: FOLDER }))).redirectTo);
+  assert.deepEqual(await send(overlay({ fileId, href: FOLDER })), { redirectTo: null });
 });

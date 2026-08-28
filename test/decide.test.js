@@ -2,12 +2,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { shouldConsiderPreview, shouldConsiderOverlayPreview } from '../src/lib/decide.js';
 
-const VIEW = 'https://drive.google.com/file/d/1AbC/view';
+const VIEW = 'https://drive.google.com/file/d/1AbCdEf_gH-ijkLMNopQRstUVwxyz0123/view';
 
 test('considers a Drive HTML file when enabled', () => {
   assert.deepEqual(
     shouldConsiderPreview({ href: VIEW, title: 'page.html - Google Drive', enabled: true }),
-    { consider: true, fileId: '1AbC', reason: 'ok' }
+    { consider: true, fileId: '1AbCdEf_gH-ijkLMNopQRstUVwxyz0123', reason: 'ok' }
   );
 });
 

@@ -164,9 +164,15 @@ test('returns null when the row names a file the dialog name is only part of', (
 });
 
 test('content.js stays a classic script with no imports', async () => {
-  assert.doesNotMatch(SOURCE, /^\s*import\s/m);
-  assert.doesNotMatch(SOURCE, /\bfrom\s+['"]\.\.\//);
-  assert.doesNotMatch(SOURCE, /\bsrc\/lib\b/);
+  // MV3 content scripts cannot be ES modules. Assert on module syntax rather
+  // than on a path substring: a comment may legitimately name a lib file to
+  // point a reader at where a decision moved to.
+  const withoutComments = SOURCE.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  assert.doesNotMatch(withoutComments, /^\s*import\s/m);
+  assert.doesNotMatch(withoutComments, /\bimport\s*\(/);
+  assert.doesNotMatch(withoutComments, /\bfrom\s+['"]\.\.\//);
+  assert.doesNotMatch(withoutComments, /\brequire\s*\(/);
+  assert.doesNotMatch(withoutComments, /\bexport\s/);
 });
 
 test('keeps a filename that contains spaces intact', () => {

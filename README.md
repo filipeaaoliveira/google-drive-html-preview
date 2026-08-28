@@ -99,10 +99,12 @@ The project has no dependencies. `npm test` and the icon generator run on
 Node's built-ins alone. `npm run package` shells out to the `zip` command that
 ships with macOS and Linux.
 
-Unit tests cover `src/lib/`: filename classification, URL parsing, the preview
-decision, the storage layer, and the fetch module. The browser-facing pieces,
-meaning the content script, the service worker, the viewer and the sandbox, have
-no automated coverage and are checked by hand in Chrome and Brave.
+Unit tests cover all of `src/lib/`, plus the service worker (driven through a
+stubbed `chrome` namespace), the sandbox page, and the content script's DOM
+reader (evaluated in a `vm` against a fake Drive document).
+
+The viewer page, the popup, and the content script's observer wiring have no
+automated coverage and are checked by hand in Chrome and Brave.
 
 `docs/PRIVACY.md` is the privacy policy, published at
 https://filipeaaoliveira.github.io/google-drive-html-preview/PRIVACY.html
