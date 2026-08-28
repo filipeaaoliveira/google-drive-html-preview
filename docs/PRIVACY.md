@@ -1,3 +1,7 @@
+---
+title: "Privacy policy — Drive HTML Preview"
+---
+
 # Privacy policy — Drive HTML Preview
 
 Last updated: 2026-08-28

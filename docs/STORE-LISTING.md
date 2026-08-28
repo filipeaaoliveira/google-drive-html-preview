@@ -1,3 +1,7 @@
+---
+title: "Chrome Web Store submission"
+---
+
 # Chrome Web Store submission
 
 **Visibility:** Unlisted — installable only via a direct link. Works on Chrome

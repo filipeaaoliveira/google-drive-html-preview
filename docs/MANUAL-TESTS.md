@@ -1,3 +1,7 @@
+---
+title: "Manual test matrix"
+---
+
 # Manual test matrix
 
 Run before every release, in both Chrome and Brave (default shields).
