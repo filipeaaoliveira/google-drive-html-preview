@@ -76,11 +76,30 @@ no trailing path segment (`/view`, `/edit`) does not match.
 
 ## Install
 
-Chrome and Brave, from the unlisted Chrome Web Store link.
+The Chrome Web Store listing is in review. Until it is live, install from the
+release zip. Chrome and Brave both work; the steps are the same, only the
+settings URL differs.
 
-To run from source: clone the repository, open `chrome://extensions`, enable
-Developer mode, choose "Load unpacked", and select the repository root. There
-is no build step.
+1. Download `drive-html-preview-1.0.1.zip` from the
+   [latest release](https://github.com/filipeaaoliveira/google-drive-html-preview/releases/latest).
+2. Unzip it. You will get a folder named `drive-html-preview-1.0.1`. Keep it
+   somewhere permanent, such as your home folder. Chrome loads the extension
+   from this folder every time it starts, so deleting or moving it uninstalls
+   the extension.
+3. Open `chrome://extensions` in Chrome, or `brave://extensions` in Brave.
+4. Turn on **Developer mode**, top right.
+5. Click **Load unpacked** and select the unzipped folder.
+6. Open an HTML file in Google Drive. It renders instead of showing its source.
+
+Chrome shows a "Disable developer mode extensions" prompt on startup while an
+extension is installed this way. Dismissing it keeps the extension. This
+disappears once the store listing is live and you install from there instead.
+
+If your Chrome is managed by your employer, Developer mode may be switched off
+by policy, and the store listing is then the only route.
+
+To run from source instead: clone the repository, and load the repository root
+as an unpacked extension. There is no build step.
 
 Loading the repository root unpacked also exposes the tests, the docs and the
 tooling to the browser. That works for development and breaks distribution. What
