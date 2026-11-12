@@ -133,20 +133,40 @@
     return null;
   }
 
-  // Two independent DOM paths must agree on the same file: the name shown in
-  // the visible dialog, and the aria-label of the single selected row that
-  // carries the id. Anything ambiguous returns null, which leaves Drive alone.
-  function readOverlayTarget(doc) {
-    const dialog = visibleDialog(doc);
-    if (!dialog) return null; // the common case: bail out before touching the big DOM
+  // The documents of same-origin frames that are on screen. Drive now renders
+  // its preview inside a drive.google.com/viewer/main iframe (seen November
+  // 2026), so the dialog that names the file is in that frame's document, not
+  // the page's. Closing the preview leaves the frame in place at zero size,
+  // with its last dialog still in it, so a frame that is not rendered is skipped.
+  function renderedFrameDocuments(doc) {
+    const docs = [];
+    for (const frame of doc.querySelectorAll('iframe')) {
+      if (!(frame.offsetWidth || frame.offsetHeight)) continue;
+      let frameDoc = null;
+      try {
+        frameDoc = frame.contentDocument; // null for a cross-origin frame
+      } catch {
+        frameDoc = null;
+      }
+      if (frameDoc) docs.push(frameDoc);
+    }
+    return docs;
+  }
 
-    const labels = labelsWithin(dialog);
-    if (!labels.some((label) => nameCandidates(label).length > 0)) return null;
+  // The labels of the first open dialog, in the page or in a rendered frame,
+  // that name an HTML file. Another dialog may be open at the same time, such
+  // as a share dialog, so the first visible one is not enough.
+  function previewLabels(doc) {
+    const dialogs = [visibleDialog(doc), ...renderedFrameDocuments(doc).map(visibleDialog)];
+    for (const dialog of dialogs) {
+      if (!dialog) continue;
+      const labels = labelsWithin(dialog);
+      if (labels.some((label) => nameCandidates(label).length > 0)) return labels;
+    }
+    return null;
+  }
 
-    const selected = doc.querySelectorAll('[aria-selected="true"][data-id]');
-    if (selected.length !== 1) return null;
-
-    const row = selected[0];
+  function selectedRowTarget(row, labels) {
     const fileId = row.getAttribute('data-id');
     if (!DRIVE_FILE_ID.test(fileId || '')) return null;
 
@@ -157,6 +177,56 @@
       }
     }
     return null;
+  }
+
+  // The previewed file's name, as the longest candidate that every label in
+  // the dialog that names an HTML file agrees on. Drive wraps the name
+  // differently in each label ("Rename x.html", "Displaying x.html."), so the
+  // part they share is the name itself. Labels that name different files share
+  // nothing, and give null.
+  function agreedName(labels) {
+    let common = null;
+    for (const label of labels) {
+      const candidates = nameCandidates(label);
+      if (candidates.length === 0) continue;
+      common = common === null ? candidates : common.filter((name) => candidates.includes(name));
+    }
+    return common && common.length > 0 ? common[0] : null; // candidates are longest first
+  }
+
+  // Since Drive moved the preview into a frame, it no longer marks the opened
+  // row as selected, and no other attribute on the row tells it apart. The
+  // row is found by name instead: exactly one file id may carry a label that
+  // names the file. Two files that both match, such as "report.html" and
+  // "Copy of report.html", are ambiguous and return null. Without a selected
+  // row to anchor it, no shorter or other name is tried, since that could
+  // match a different file.
+  function onlyRowNamingTarget(doc, labels) {
+    const name = agreedName(labels);
+    if (!name) return null;
+
+    const ids = new Set(
+      [...doc.querySelectorAll('[data-id]')]
+        .filter((row) => labelsWithin(row).some((rowLabel) => labelNamesFile(rowLabel, name)))
+        .map((row) => row.getAttribute('data-id'))
+    );
+    if (ids.size !== 1) return null;
+
+    const [fileId] = ids;
+    return DRIVE_FILE_ID.test(fileId || '') ? { fileId, name } : null;
+  }
+
+  // Two independent DOM paths must agree on the same file: the name shown in
+  // the visible dialog, and the aria-label of the row that carries the id.
+  // Anything ambiguous returns null, which leaves Drive alone.
+  function readOverlayTarget(doc) {
+    const labels = previewLabels(doc);
+    if (!labels) return null; // the common case: bail out before touching the big DOM
+
+    const selected = doc.querySelectorAll('[aria-selected="true"][data-id]');
+    if (selected.length > 1) return null;
+    if (selected.length === 1) return selectedRowTarget(selected[0], labels);
+    return onlyRowNamingTarget(doc, labels);
   }
 
   // Content scripts run in an isolated world, so this global is invisible to
@@ -200,23 +270,58 @@
 
   function watchOverlay() {
     let timer = null;
-
-    // Drive's folder page is large — 95 [data-id] elements were observed — and
-    // these attributes change constantly, so the work is debounced and
-    // readOverlayTarget exits on its first selector when no overlay is open.
-    new MutationObserver(() => {
-      if (timer !== null) return;
-      timer = setTimeout(() => {
-        timer = null;
-        reportOverlay();
-      }, OVERLAY_DEBOUNCE_MS);
-    }).observe(document.body, {
+    const options = {
       subtree: true,
       childList: true,
       attributes: true,
       attributeFilter: ['aria-hidden', 'aria-selected', 'aria-label']
-    });
+    };
 
+    // Drive's folder page is large — 95 [data-id] elements were observed — and
+    // these attributes change constantly, so the work is debounced and
+    // readOverlayTarget exits on its first selector when no overlay is open.
+    const observer = new MutationObserver(schedule);
+    observer.observe(document.body, options);
+
+    // The preview opens and closes inside Drive's viewer frame, where the
+    // page's observer cannot see it, so each same-origin frame's document is
+    // observed too. A frame that navigates gets a new document; the WeakSet
+    // lets the old one go.
+    const observedFrames = new WeakSet();
+    function observeFrames() {
+      for (const frame of document.querySelectorAll('iframe')) {
+        let frameDoc = null;
+        try {
+          frameDoc = frame.contentDocument;
+        } catch {
+          frameDoc = null;
+        }
+        if (!frameDoc?.body || observedFrames.has(frameDoc)) continue;
+        observedFrames.add(frameDoc);
+        observer.observe(frameDoc.body, options);
+      }
+    }
+
+    function schedule() {
+      if (timer !== null) return;
+      timer = setTimeout(() => {
+        timer = null;
+        observeFrames();
+        reportOverlay();
+      }, OVERLAY_DEBOUNCE_MS);
+    }
+
+    // A frame's load event does not bubble, but a capturing listener on the
+    // document receives it. That is when a frame has a new document to observe.
+    document.addEventListener(
+      'load',
+      (event) => {
+        if (event.target?.tagName === 'IFRAME') schedule();
+      },
+      true
+    );
+
+    observeFrames();
     reportOverlay();
   }
 

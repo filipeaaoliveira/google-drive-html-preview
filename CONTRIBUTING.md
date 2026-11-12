@@ -106,13 +106,18 @@ changing any code:
 
 ```js
 (() => {
-  const isId = /^[-\w]{25,}$/;
+  const dialogs = (doc) => [...doc.querySelectorAll('[role="dialog"]')].map(d => ({
+    ariaHidden: d.getAttribute('aria-hidden'),
+    label: d.getAttribute('aria-label'),
+    renders: !!(d.offsetWidth || d.offsetHeight || d.getClientRects().length)
+  }));
   return {
-    dialogs: [...document.querySelectorAll('[role="dialog"]')].map(d => ({
-      ariaHidden: d.getAttribute('aria-hidden'),
-      label: d.getAttribute('aria-label'),
-      renders: !!(d.offsetWidth || d.offsetHeight || d.getClientRects().length)
-    })),
+    dialogs: dialogs(document),
+    // Drive renders its preview in a same-origin frame at /viewer/main.
+    frames: [...document.querySelectorAll('iframe')]
+      .filter(f => f.offsetWidth || f.offsetHeight)
+      .map(f => { try { return { path: new URL(f.src).pathname, dialogs: dialogs(f.contentDocument) }; }
+                  catch { return { path: 'cross-origin' }; } }),
     selectedRows: [...document.querySelectorAll('[aria-selected="true"][data-id]')]
       .map(e => ({ id: e.getAttribute('data-id'), label: e.getAttribute('aria-label') }))
   };
