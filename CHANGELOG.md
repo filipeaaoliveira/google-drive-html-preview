@@ -3,6 +3,19 @@
 This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Opening an HTML file from a folder showed its source again: the overlay
+  trigger stopped working. Drive now renders its preview inside a same-origin
+  frame at `drive.google.com/viewer/main`. The dialog that names the file is in
+  that frame, and the file's row in the folder is no longer marked as
+  selected. The content script now reads the dialog from any same-origin frame
+  that is on screen and observes those frames for changes. When no row is
+  selected, it takes the file id from the one row that names the file, and
+  declines when the name matches more than one row.
+
 ## [1.0.1] - 2026-08-28
 
 ### Fixed
