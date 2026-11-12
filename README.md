@@ -67,9 +67,9 @@ confirmation shown for files over 100 MB, is indistinguishable from your own
 document, and the extension may render it as one. A signed-out user *is* detected, because
 that case redirects off the Drive hosts, and gets a clear message instead.
 
-Stashed sources are not expired. If you close the tab before the viewer loads,
-that file's source stays in `chrome.storage.session` until the browser session
-ends.
+Stashed sources expire after a minute. If you close the tab before the viewer
+loads, that file's source stays in `chrome.storage.session` until the next
+preview removes it, or until the browser session ends.
 
 A bare file URL is not recognised. `https://drive.google.com/file/d/<id>` with
 no trailing path segment (`/view`, `/edit`) does not match.

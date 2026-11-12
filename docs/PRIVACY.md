@@ -20,7 +20,8 @@ access, and it never sees your Google credentials.
 
 The file's contents sit in your browser's session storage only long enough to
 reach the viewer page, and the extension discards them as soon as the viewer
-reads them. Closing your browser clears them.
+reads them. If no viewer reads them, the next preview removes them once they
+are a minute old. Closing your browser clears them.
 
 ## What the extension does not do
 
