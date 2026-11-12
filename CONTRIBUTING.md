@@ -33,6 +33,8 @@ that rule before any other:
 - `attempt-log.js` remembers what has been tried, so a file is neither
   redirected twice in a moment nor downloaded again after a decision that
   cannot change
+- `in-flight.js` joins a request to a download already running for the same
+  file, so overlapping reports from Drive download and store it once
 - `messages.js` builds the viewer URL
 
 Four browser surfaces consume those functions:
