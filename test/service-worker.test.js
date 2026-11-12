@@ -11,13 +11,17 @@ const local = new Map();
 function area(map) {
   return {
     async get(key) {
+      if (key === null) return Object.fromEntries(map);
       return map.has(key) ? { [key]: map.get(key) } : {};
+    },
+    async getKeys() {
+      return [...map.keys()];
     },
     async set(items) {
       for (const [key, value] of Object.entries(items)) map.set(key, value);
     },
-    async remove(key) {
-      map.delete(key);
+    async remove(keys) {
+      for (const key of [].concat(keys)) map.delete(key);
     }
   };
 }
@@ -238,4 +242,86 @@ test('a repeat overlay redirect for the same file is refused within the guard wi
   nextResponse = reply({ name: 'report.html' });
   assert.ok((await send(overlay({ fileId, href: FOLDER }))).redirectTo);
   assert.deepEqual(await send(overlay({ fileId, href: FOLDER })), { redirectTo: null });
+});
+
+// A download the test finishes by hand, so later reports arrive while it runs.
+function gatedReply(options) {
+  let open;
+  const gate = new Promise((resolve) => (open = resolve));
+  const respond = reply(options);
+  return { response: () => gate.then(respond), open };
+}
+
+function stashedCount() {
+  return [...session.keys()].filter((key) => key.startsWith('src:')).length;
+}
+
+// Drive's overlay reports the open file on every DOM mutation burst, every
+// 200 ms. A download takes longer than that, so reports arrive while it runs.
+// Each one used to start its own download and store its own copy, and only one
+// viewer ever took a copy. The rest held quota until the browser restarted.
+test('overlay reports that arrive during a download share it and store one copy', async () => {
+  const fileId = freshId();
+  const gated = gatedReply({ name: 'report.html' });
+  nextResponse = gated.response;
+  const fetchedBefore = fetched.length;
+  const storedBefore = stashedCount();
+
+  const first = send(overlay({ fileId, href: FOLDER }));
+  const second = send(overlay({ fileId, href: FOLDER }));
+  const third = send(overlay({ fileId, href: FOLDER }));
+  gated.open();
+  const responses = await Promise.all([first, second, third]);
+
+  assert.equal(fetched.length - fetchedBefore, 1, 'one download for one file');
+  assert.equal(stashedCount() - storedBefore, 1, 'one stored copy for one viewer');
+  assert.ok(responses[0].redirectTo);
+  for (const response of responses) assert.equal(response.redirectTo, responses[0].redirectTo);
+});
+
+test('url-and-title reports that arrive during a download share it too', async () => {
+  const href = `https://drive.google.com/file/d/${freshId()}/view`;
+  const gated = gatedReply({ name: 'page.html' });
+  nextResponse = gated.response;
+  const fetchedBefore = fetched.length;
+  const storedBefore = stashedCount();
+
+  const request = { type: 'PREVIEW_REQUEST', href, title: 'page.html - Google Drive' };
+  const pending = [send(request), send(request)];
+  gated.open();
+  const [a, b] = await Promise.all(pending);
+
+  assert.equal(fetched.length - fetchedBefore, 1);
+  assert.equal(stashedCount() - storedBefore, 1);
+  assert.ok(a.redirectTo);
+  assert.equal(b.redirectTo, a.redirectTo);
+});
+
+test('a finished download does not absorb a later request for the same file', async () => {
+  const href = `https://drive.google.com/file/d/${freshId()}/view`;
+  const request = { type: 'PREVIEW_REQUEST', href, title: 'page.html - Google Drive' };
+  nextResponse = reply({ name: 'page.html' });
+  const fetchedBefore = fetched.length;
+
+  const first = await send(request);
+  const second = await send(request);
+
+  assert.equal(fetched.length - fetchedBefore, 2, 'a reopen must download the file again');
+  assert.notEqual(second.redirectTo, first.redirectTo);
+});
+
+test('requests for the same file from different folders do not share a run', async () => {
+  const fileId = freshId();
+  const gated = gatedReply({ name: 'report.html' });
+  nextResponse = gated.response;
+  const fetchedBefore = fetched.length;
+
+  const pending = [
+    send(overlay({ fileId, href: FOLDER })),
+    send(overlay({ fileId, href: 'https://drive.google.com/drive/folders/0XYZotherFolder' }))
+  ];
+  gated.open();
+  await Promise.all(pending);
+
+  assert.equal(fetched.length - fetchedBefore, 2, 'each folder needs its own Back to Drive target');
 });

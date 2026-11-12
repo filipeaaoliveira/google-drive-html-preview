@@ -1,6 +1,7 @@
 import { shouldConsiderPreview, shouldConsiderOverlayPreview } from '../lib/decide.js';
 import { namesMatch, safeDriveReturnUrl } from '../lib/target.js';
 import { createAttemptLog } from '../lib/attempt-log.js';
+import { createInFlight } from '../lib/in-flight.js';
 import { fetchDriveFile, DriveFetchError } from '../lib/fetch-drive.js';
 import { createSourceStore } from '../lib/source-store.js';
 import { createSettings } from '../lib/settings.js';
@@ -17,6 +18,10 @@ const settings = createSettings(chrome.storage.local);
 // Overlay redirects return the user to a url that still matches the trigger,
 // so one redirect per file id per window is all that can be allowed.
 const attemptLog = createAttemptLog();
+// The attempt log only learns of a redirect once the download has finished, so
+// it cannot stop the overlay's next report from starting a second download.
+// This joins such a report to the download already running for the same file.
+const inFlight = createInFlight();
 
 async function stash(file, returnTo = null) {
   const key = await store.put({
@@ -44,8 +49,21 @@ async function handlePreviewRequest({ href, title, fileId, expectedName }) {
   // overlay would redirect again immediately and trap the user.
   if (fileId && !attemptLog.shouldAttempt(decision.fileId)) return { redirectTo: null };
 
+  // Only the overlay path came from somewhere else: on a /file/d/<id>/view
+  // url the user really was on the file's own page, so there is nothing to
+  // return to and today's behaviour is already right.
+  const returnTo = fileId ? safeDriveReturnUrl(href) : null;
+
+  // Every input that shapes the outcome is in the key, so a request only joins
+  // a run that would have given it the same answer. Each joined request gets
+  // the same viewer url, which holds one stored copy for one viewer to take.
+  const key = JSON.stringify([decision.fileId, expectedName ?? null, returnTo]);
+  return inFlight.run(key, () => previewFile(decision.fileId, expectedName, returnTo));
+}
+
+async function previewFile(fileId, expectedName, returnTo) {
   try {
-    const file = await fetchDriveFile(decision.fileId);
+    const file = await fetchDriveFile(fileId);
     // Google answers a signed-out request with its sign-in page as HTTP 200
     // text/html. Rendering that as the user's document would be worse than
     // leaving Drive's own page alone.
@@ -60,7 +78,7 @@ async function handlePreviewRequest({ href, title, fileId, expectedName }) {
       // Durable: the file's type will not change while this page is open, and
       // the content script reports on every DOM mutation, so remember it rather
       // than downloading the same file again on the next burst.
-      attemptLog.recordDurableDecline(decision.fileId);
+      attemptLog.recordDurableDecline(fileId);
       return { redirectTo: null };
     }
     // The backstop for the overlay's DOM guesswork: what Drive sent back must
@@ -71,15 +89,11 @@ async function handlePreviewRequest({ href, title, fileId, expectedName }) {
       // No filename here: this lands in a console that gets screen-shared, and
       // the file id in the request is enough to trace a real mismatch.
       console.warn('Drive HTML Preview: declining, the file Drive returned is not the one requested');
-      attemptLog.recordDurableDecline(decision.fileId);
+      attemptLog.recordDurableDecline(fileId);
       return { redirectTo: null };
     }
-    // Only the overlay path came from somewhere else: on a /file/d/<id>/view
-    // url the user really was on the file's own page, so there is nothing to
-    // return to and today's behaviour is already right.
-    const returnTo = fileId ? safeDriveReturnUrl(href) : null;
     const redirectTo = await stash(file, returnTo);
-    attemptLog.recordRedirect(decision.fileId);
+    attemptLog.recordRedirect(fileId);
     return { redirectTo };
   } catch (error) {
     // A failed fetch must leave Drive's own page working. Never redirect on error.

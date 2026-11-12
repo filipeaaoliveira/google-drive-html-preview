@@ -3,6 +3,21 @@
 This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Large files stopped previewing after a few uses, and Drive showed their
+  source instead, with no error. Each open of a `/file/d/<id>/view` link left
+  one full copy of the file in session storage that no viewer read. The copies
+  stayed until the browser restarted, and session storage holds 10 MB for the
+  whole extension. At one copy per open, a 2.8 MB file fills it in about three
+  opens, after which any file larger than the space left fails to store. A
+  copy no viewer has read is now removed after a minute.
+- A report of a file that arrived while its download was still running
+  started a second download and stored a second copy. The overlay reports the
+  open file every 200 ms. Such reports now share the running download.
+
 ## [1.0.1] - 2026-08-28
 
 ### Fixed
